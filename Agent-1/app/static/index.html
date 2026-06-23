@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <title>诊疗助手</title>
+  <link rel="stylesheet" href="/static/css/variables.css" />
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/layout.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/chat.css" />
+  <link rel="stylesheet" href="/static/css/pages.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="header-toggle" id="sidebarToggleBtn" type="button" title="打开面板">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="9" y1="3" x2="9" y2="21"/>
+          </svg>
+        </button>
+        <div class="header-brand">
+          <div class="header-brand-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <span class="header-brand-name">诊疗助手</span>
+        </div>
+      </div>
+      <div class="header-center">
+        <button class="mode-pill active" id="chatViewBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          通用聊天
+        </button>
+        <button class="mode-pill" id="memoryViewBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          记忆聊天
+        </button>
+      </div>
+      <div class="header-right">
+        <button class="mode-pill" id="openLoginModalBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          登录
+        </button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <!-- Sidebar Overlay -->
+      <div class="sidebar-overlay" id="sidebarOverlay" style="display:none"></div>
+
+      <!-- Sidebar Drawer -->
+      <aside class="sidebar-drawer" id="sidebarDrawer">
+        <div class="sidebar-panel">
+          <div class="sidebar-panel-header">
+            <h3>对话</h3>
+            <button class="sidebar-close" id="sidebarCloseBtn" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="sidebar-panel-body">
+            <button class="sidebar-new-chat" id="generalNewChatBtn" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              新建对话
+            </button>
+
+            <div class="sidebar-section">
+              <div class="sidebar-section-label">最近对话</div>
+              <div id="sidebarRecentList" class="sidebar-history">
+                <div class="sidebar-empty-inline">暂无对话记录</div>
+              </div>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <div class="sidebar-section" id="sidebarPatientSection">
+              <div class="sidebar-section-label">当前患者</div>
+              <div class="sidebar-empty-inline" id="sidebarPatientEmpty">暂未绑定患者</div>
+              <button class="sidebar-search-toggle" id="sidebarSearchToggle" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                绑定患者
+              </button>
+              <div class="sidebar-search" id="sidebarSearchBox" style="display:none">
+                <input id="sidebarPhoneInput" placeholder="输入手机号或姓名搜索..." />
+                <button class="btn btn-primary btn-sm" id="sidebarSearchBtn" type="button">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="sidebar-status" id="sidebarSearchStatus"></p>
+              <div id="sidebarPatientList" class="sidebar-patient-list"></div>
+              <div id="sidebarPatientCard" class="sidebar-patient-card" style="display:none"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <main class="app-main">
+        <!-- General Chat -->
+        <section class="workspace" id="generalView">
+          <div class="chat-stage-centered">
+            <div class="chat-transcript-pane-centered">
+              <div id="generalChatTranscript" class="chat-window chat-transcript-pane">
+                <div class="chat-empty">直接提问，无需绑定身份。</div>
+              </div>
+            </div>
+            <form id="generalChatForm" class="chat-composer-centered">
+              <div class="chat-input-row">
+                <textarea name="question" placeholder="输入消息，Enter 发送..." required rows="1"></textarea>
+                <button class="btn-send-circle" id="generalSendBtn" type="submit" title="发送">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="generalChatStatus" class="status full"></div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Memory Chat -->
+        <section class="workspace" id="chatView" hidden>
+          <div class="login-modal-backdrop" id="loginModalBackdrop" hidden>
+            <div class="login-modal panel">
+              <div class="stage-head">
+                <h2>绑定个人信息</h2>
+                <button class="modal-close-btn" id="loginModalCloseBtn" type="button" aria-label="关闭">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <p style="color:var(--color-text-secondary);font-size:13px;margin:4px 0 14px">填写姓名和电话，系统识别就诊记录后开启记忆聊天。</p>
+              <div class="form-grid">
+                <label>姓名<input id="profileNameInput" placeholder="例如：张三" /></label>
+                <label>电话<input id="profilePhoneInput" placeholder="例如：13800138000" /></label>
+                <div class="actions full">
+                  <button class="primary" id="applyProfileBtn" type="button">绑定并登录</button>
+                  <button class="secondary" id="clearProfileBtn" type="button">清空</button>
+                </div>
+              </div>
+              <div id="profileLoginStatus" class="status full"></div>
+            </div>
+          </div>
+
+          <div class="chat-stage-centered">
+            <div class="chat-transcript-pane-centered">
+              <div id="chatTranscript" class="chat-window chat-transcript-pane">
+                <div class="chat-empty">请先登录后再使用记忆聊天。</div>
+              </div>
+            </div>
+            <form id="multimodalForm" class="chat-composer-centered">
+              <div class="chat-input-row">
+                <label class="inline-file" title="上传图片">图片<input type="file" name="image" accept="image/*" id="imageFileInput" /><span id="imageFileName" class="image-file-name"></span></label>
+                <textarea name="question" placeholder="请输入问题，例如：我后续治疗应该注意什么？" required rows="1"></textarea>
+                <button class="btn-send-circle" id="sendMessageBtn" type="button" title="发送">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="multimodalStatus" class="status full"></div>
+            </form>
+          </div>
+
+          <section class="memory-debug-section">
+            <details class="panel wide memory-debug-drawer" open>
+              <summary>Memory Debug</summary>
+              <div class="panel-body">
+                <div id="memoryDebugCards" class="memory-debug-cards">
+                  <div class="memory-debug-empty">发送一条记忆聊天后，这里会显示卡片摘要。</div>
+                </div>
+                <details class="memory-debug-raw">
+                  <summary>原始 JSON</summary>
+                  <pre id="memoryDebugOutput">{}</pre>
+                </details>
+              </div>
+            </details>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/static/js/state.js"></script>
+  <script src="/static/js/utils.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/chat.js"></script>
+  <script src="/static/js/memory.js"></script>
+  <script src="/static/js/patient.js"></script>
+  <script src="/static/js/speech.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

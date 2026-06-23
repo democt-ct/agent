@@ -1,0 +1,3622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能旅游助手</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>智能旅游助手 Agent</h1>
+      <p>直接告诉我目的地、天数、同行人群、预算和偏好，我会按你的需求给出地点规划建议。</p>
+      <div class="meta">
+        <div class="meta-chip">模式：旅游地点规划</div>
+        <div class="meta-chip">会话 ID：<span id="sessionId">未创建</span></div>
+        <div class="meta-chip">模型：<strong id="modelName">加载中...</strong></div>
+        <button id="newSessionBtn" type="button">新建会话</button>
+      </div>
+      <div id="status">后端已连接，等待输入。</div>
+    </section>
+
+    <section class="panel transcript-shell">
+      <div class="transcript-head">
+        <button id="sessionPanelToggle" type="button" class="recent-toggle" aria-controls="sessionPanel" aria-expanded="false">
+          最近对话
+          <span id="sessionPanelBadge" class="recent-toggle-badge">0</span>
+        </button>
+        <div class="summary-title">
+          <h2>对话</h2>
+          <p>这里显示当前会话的聊天记录和规划结果。</p>
+        </div>
+      </div>
+
+      <div class="transcript-stage">
+        <div id="sessionPanel" class="recent-drawer" aria-hidden="true">
+          <div class="recent-drawer-header">
+            <div>
+              <h3>最近对话</h3>
+              <p>点开后可以在左上角查看并恢复历史会话。</p>
+            </div>
+            <button id="sessionPanelClose" type="button" class="recent-close">收起</button>
+          </div>
+          <div class="recent-drawer-meta" id="sessionListMeta">加载中...</div>
+          <div id="sessionList" class="sessions-grid"></div>
+        </div>
+
+        <div id="transcript">
+          <div class="empty">先发一条需求，我会开始做旅游地点规划建议。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel map-shell">
+      <div class="map-head">
+        <div>
+          <h2>地图</h2>
+          <p>左边看路线与落点，右边专门用来搜索地点并手动加入某一天。</p>
+        </div>
+        <div class="map-toolbar">
+          <div class="map-mode-toggle" role="group" aria-label="地图视图模式">
+            <button id="mapMode2DBtn" type="button" class="is-active" aria-pressed="true">2D</button>
+            <button id="mapMode3DBtn" type="button" aria-pressed="false">3D</button>
+          </div>
+          <button id="mapZoomInBtn" type="button">+</button>
+          <button id="mapZoomOutBtn" type="button">-</button>
+        </div>
+      </div>
+      <div class="map-layout">
+        <div class="map-stage">
+          <div id="mapDayTabs" class="map-day-tabs" hidden></div>
+          <div id="mapStatus" class="map-status">地图加载中，如果一直空白，请检查高德 Key 和浏览器控制台。</div>
+          <div id="plannerNotice" class="planner-notice" hidden></div>
+          <div id="mapCanvas" class="map-canvas">
+            <div class="map-placeholder">地图正在加载...</div>
+          </div>
+          <div id="mapItineraryList" class="map-result-list map-itinerary-list"></div>
+        </div>
+        <aside class="map-side">
+          <div class="map-side-head">
+            <h3>搜索与加点</h3>
+            <p>搜索结果会用不同颜色显示在地图上。确认合适后，可以直接添加到第几天。</p>
+          </div>
+          <div class="map-search">
+            <input id="mapSearchInput" type="text" placeholder="搜索地点，比如：咖啡店、景点、夜景" />
+            <button id="mapSearchBtn" type="button">搜索</button>
+          </div>
+          <div class="map-status is-side">右侧显示搜索结果；绿色编号点仍然代表当前行程。</div>
+          <div id="mapSearchResultList" class="map-result-list map-search-result-list"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="alternativePanel" class="panel alt-shell" hidden>
+      <div class="map-head">
+        <div>
+          <h2>备选行程</h2>
+          <p>这里先展示可考虑的备选地点；如果你想加入行程，可以先搜索，再手动添加到某一天。</p>
+        </div>
+      </div>
+      <div id="alternativeList" class="alt-list"></div>
+    </section>
+
+    <section class="panel notes-shell">
+      <div class="map-head">
+        <div>
+          <h2>用户记录</h2>
+          <p>这里可以自己搜索城市地点，记录评分和备注，后面回看也方便。</p>
+        </div>
+      </div>
+      <div class="notes-layout">
+        <div class="notes-card">
+          <div class="notes-field-grid">
+            <label>
+              城市
+              <input id="noteCityInput" type="text" placeholder="比如：绵阳、成都" />
+            </label>
+            <label>
+              地点
+              <input id="notePlaceInput" type="text" placeholder="比如：人民公园、越王楼" />
+            </label>
+            <label>
+              评分
+              <select id="noteRatingInput">
+                <option value="">未评分</option>
+                <option value="5">5 分</option>
+                <option value="4">4 分</option>
+                <option value="3">3 分</option>
+                <option value="2">2 分</option>
+                <option value="1">1 分</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            备注 / 评价
+            <textarea id="noteCommentInput" placeholder="可以记录印象、适合什么时候去、是否值得二刷、踩雷点等。"></textarea>
+          </label>
+          <div class="notes-actions">
+            <button id="noteSearchBtn" type="button">搜索地点</button>
+            <button id="noteSaveBtn" type="button" class="primary">保存记录</button>
+            <button id="noteResetBtn" type="button">清空输入</button>
+          </div>
+          <div id="noteSearchMeta" class="notes-meta">可以先搜索地点再保存；也可以直接手动写地点和评价。</div>
+          <div id="noteSearchResultList" class="map-result-list"></div>
+        </div>
+        <div class="notes-card">
+          <div class="map-side-head">
+            <h3>已保存记录</h3>
+            <p>会跟当前会话一起保存，切回历史会话时也能看到。</p>
+          </div>
+          <div id="noteSavedList" class="note-record-list">
+            <div class="note-record-empty">还没有保存任何记录。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="composer">
+    <textarea id="promptInput" placeholder="输入你的旅游需求，例如：成都三天，情侣出行，预算适中，喜欢 citywalk、咖啡店和夜景。"></textarea>
+    <button id="sendBtn" type="button">发送</button>
+  </div>
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    const state = {
+      sessionId: null,
+      loading: false,
+      messages: [],
+      sessions: [],
+      sessionHistoryTotal: 0,
+      recentPanelOpen: false,
+      modelName: "-",
+      userLocation: null,
+      mapConfig: null,
+      map: null,
+      mapCameraOverride: null,
+      mapBuildingLayer: null,
+      mapMarkers: [],
+      mapPolylines: [],
+      mapSearchResults: [],
+      mapManualSearchResults: [],
+      mapPreviewItems: [],
+      mapPendingCandidates: [],
+      mapRouteSegments: [],
+      mapItineraryDays: [],
+      mapSelectedDay: null,
+      mapActiveResultKey: null,
+      mapInfoWindow: null,
+      latestItinerary: null,
+      latestAssistantReply: "",
+      alternativeOptions: [],
+      alternativeOptionsCacheKey: "",
+      userNotes: [],
+      noteExpandedCity: "",
+      noteSearchResults: [],
+      noteSelectedPoi: null,
+      localItineraryAdditions: {},
+      placeResolveCache: new Map(),
+      placeCandidatesCache: new Map(),
+      mapSdkError: null,
+      map3D: false,
+      routeRefreshTimer: null,
+      reorderRequestSeq: 0
+    };
+    const LOCAL_ITINERARY_ADDITIONS_KEY = "travelAgentLocalItineraryAdditions";
+
+    const sessionIdEl = document.getElementById("sessionId");
+    const modelNameEl = document.getElementById("modelName");
+    const statusEl = document.getElementById("status");
+    const transcriptEl = document.getElementById("transcript");
+    const promptInputEl = document.getElementById("promptInput");
+    const sendBtnEl = document.getElementById("sendBtn");
+    const newSessionBtnEl = document.getElementById("newSessionBtn");
+    const sessionPanelToggleEl = document.getElementById("sessionPanelToggle");
+    const sessionPanelCloseEl = document.getElementById("sessionPanelClose");
+    const sessionPanelEl = document.getElementById("sessionPanel");
+    const sessionPanelBadgeEl = document.getElementById("sessionPanelBadge");
+    const sessionListEl = document.getElementById("sessionList");
+    const sessionListMetaEl = document.getElementById("sessionListMeta");
+    const mapStatusEl = document.getElementById("mapStatus");
+    const plannerNoticeEl = document.getElementById("plannerNotice");
+    const mapCanvasEl = document.getElementById("mapCanvas");
+    const mapItineraryListEl = document.getElementById("mapItineraryList");
+    const mapSearchResultListEl = document.getElementById("mapSearchResultList");
+    const alternativePanelEl = document.getElementById("alternativePanel");
+    const alternativeListEl = document.getElementById("alternativeList");
+    const mapDayTabsEl = document.getElementById("mapDayTabs");
+    const mapSearchInputEl = document.getElementById("mapSearchInput");
+    const mapSearchBtnEl = document.getElementById("mapSearchBtn");
+    const mapMode2DBtnEl = document.getElementById("mapMode2DBtn");
+    const mapMode3DBtnEl = document.getElementById("mapMode3DBtn");
+    const mapZoomInBtnEl = document.getElementById("mapZoomInBtn");
+    const mapZoomOutBtnEl = document.getElementById("mapZoomOutBtn");
+    const noteCityInputEl = document.getElementById("noteCityInput");
+    const notePlaceInputEl = document.getElementById("notePlaceInput");
+    const noteRatingInputEl = document.getElementById("noteRatingInput");
+    const noteCommentInputEl = document.getElementById("noteCommentInput");
+    const noteSearchBtnEl = document.getElementById("noteSearchBtn");
+    const noteSaveBtnEl = document.getElementById("noteSaveBtn");
+    const noteResetBtnEl = document.getElementById("noteResetBtn");
+    const noteSearchMetaEl = document.getElementById("noteSearchMeta");
+    const noteSearchResultListEl = document.getElementById("noteSearchResultList");
+    const noteSavedListEl = document.getElementById("noteSavedList");
+    const toastStackEl = document.getElementById("toastStack");
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function showToast(text, kind = "info") {
+      if (!toastStackEl) return;
+      const toast = document.createElement("div");
+      toast.className = `toast ${kind}`;
+      toast.textContent = String(text || "").trim() || "操作已完成";
+      toastStackEl.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("show"));
+      window.setTimeout(() => {
+        toast.classList.remove("show");
+        window.setTimeout(() => toast.remove(), 220);
+      }, 2600);
+    }
+
+    function getWorkflowStageLabel(stage) {
+      const normalized = String(stage || "").trim();
+      if (normalized === "requirement_interpret") return "需求解析";
+      if (normalized === "candidate_recall") return "候选召回";
+      if (normalized === "city_recall") return "城市召回";
+      if (normalized === "poi_validation") return "地点验证";
+      if (normalized === "poi_grounding") return "POI Grounding";
+      if (normalized === "planner_generate") return "行程编排";
+      if (normalized === "planner") return "Planner";
+      if (normalized === "route_validator") return "路线校验";
+      if (normalized === "validator_repair") return "Validator + Repair";
+      if (normalized === "summary_generate") return "结果总结";
+      return normalized || "工具阶段";
+    }
+
+    function renderPlannerDiagnostics() {
+      if (!plannerNoticeEl) return;
+      plannerNoticeEl.hidden = true;
+      plannerNoticeEl.innerHTML = "";
+    }
+
+    function renderPoiHierarchyMeta(item) {
+      const bits = [];
+      if (item?.validation_status) bits.push(`校验：${item.validation_status}`);
+      if (item?.place_kind) bits.push(`类型：${item.place_kind}`);
+      if (item?.is_primary_poi === false && item?.parent_poi_name) {
+        bits.push(`附属于：${item.parent_poi_name}`);
+      } else if (item?.is_primary_poi === true) {
+        bits.push("主体POI");
+      }
+      if (item?.child_poi_type) bits.push(`子类型：${item.child_poi_type}`);
+      return bits.length
+        ? `<div class="map-result-tag" style="background: rgba(20, 184, 166, 0.1); color: #0f766e;">${escapeHtml(bits.join(" · "))}</div>`
+        : "";
+    }
+
+    function formatDistanceMeters(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const distance = Number(value);
+      if (!Number.isFinite(distance) || distance < 0.5) return "";
+      if (distance >= 1000) return `${(distance / 1000).toFixed(distance >= 10000 ? 0 : 1)} km`;
+      return `${Math.round(distance)} m`;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text ?? "";
+      return div.innerHTML;
+    }
+
+    function formatNoteTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function syncNoteCityFromContext(force = false) {
+      if (!noteCityInputEl) return;
+      if (!force && String(noteCityInputEl.value || "").trim()) return;
+      const city = getActivePlanningCity();
+      if (city) noteCityInputEl.value = city;
+    }
+
+    function resetUserNoteDraft(options = {}) {
+      if (!options?.preserveCity && noteCityInputEl) noteCityInputEl.value = "";
+      if (notePlaceInputEl) notePlaceInputEl.value = "";
+      if (noteRatingInputEl) noteRatingInputEl.value = "";
+      if (noteCommentInputEl) noteCommentInputEl.value = "";
+      state.noteSelectedPoi = null;
+      state.noteSearchResults = [];
+      renderUserNoteSearchResults();
+      if (noteSearchMetaEl) {
+        noteSearchMetaEl.textContent = "可以先搜索地点再保存；也可以直接手动写地点和评价。";
+      }
+      if (options?.syncCity) syncNoteCityFromContext(true);
+    }
+
+    function renderUserNoteSearchResults() {
+      if (!noteSearchResultListEl) return;
+      const items = Array.isArray(state.noteSearchResults) ? state.noteSearchResults : [];
+      if (!items.length) {
+        noteSearchResultListEl.innerHTML = '<div class="note-record-empty">这里会显示你搜索到的地点结果。</div>';
+        return;
+      }
+      noteSearchResultListEl.innerHTML = items.map((item, index) => {
+        const key = String(item?.poi_id || item?.id || item?.name || index);
+        const isActive = String(state.noteSelectedPoi?.poi_id || state.noteSelectedPoi?.id || state.noteSelectedPoi?.name || "") === key;
+        const address = String(item?.address || "").trim();
+        const category = String(item?.category || "").trim();
+        return `
+          <article class="map-result ${isActive ? "is-active" : ""}">
+            <div class="map-result-main">
+              <div class="map-result-title">${escapeHtml(item?.name || item?.query || "未命名地点")}</div>
+              ${address ? `<div class="map-result-description">${escapeHtml(address)}</div>` : ""}
+              ${category ? `<div class="map-result-tag">${escapeHtml(category)}</div>` : ""}
+            </div>
+            <div class="map-result-actions">
+              <button type="button" data-note-result-select="${index}">${isActive ? "已选中" : "用于记录"}</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+      noteSearchResultListEl.querySelectorAll("[data-note-result-select]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const index = Number(button.getAttribute("data-note-result-select"));
+          const item = items[index];
+          if (!item) return;
+          state.noteSelectedPoi = item;
+          if (notePlaceInputEl) notePlaceInputEl.value = item.name || item.query || "";
+          renderUserNoteSearchResults();
+          if (noteSearchMetaEl) {
+            noteSearchMetaEl.textContent = `已选中 ${item.name || item.query || "该地点"}，保存时会把搜索到的 POI 一起记下来。`;
+          }
+        });
+      });
+    }
+
+    function renderSavedUserNotes() {
+      if (!noteSavedListEl) return;
+      const notes = Array.isArray(state.userNotes) ? state.userNotes : [];
+      if (!notes.length) {
+        state.noteExpandedCity = "";
+        noteSavedListEl.innerHTML = `<div class="note-record-empty">${state.sessionId ? "还没有保存任何记录。" : "创建或进入会话后，就可以把自己的地点记录保存在这里。"}</div>`;
+        return;
+      }
+      const grouped = new Map();
+      for (const note of notes) {
+        const city = String(note?.city || "").trim() || "未分类城市";
+        if (!grouped.has(city)) grouped.set(city, []);
+        grouped.get(city).push(note);
+      }
+      const cityNames = Array.from(grouped.keys());
+      if (state.noteExpandedCity && !grouped.has(state.noteExpandedCity)) {
+        state.noteExpandedCity = "";
+      }
+      noteSavedListEl.innerHTML = cityNames.map((city) => {
+        const cityNotes = grouped.get(city) || [];
+        const expanded = city === state.noteExpandedCity;
+        const recordsHtml = cityNotes.map((note) => {
+          const title = note.place_name || note.query || "未命名地点";
+          const rating = Number.isFinite(Number(note.rating)) ? `${Number(note.rating)} / 5` : "未评分";
+          const address = String(note?.poi?.address || "").trim();
+          const subtitle = [address, note.query].filter(Boolean).join(" · ");
+          return `
+            <article class="note-record">
+              <div class="note-record-head">
+                <div>
+                  <div class="note-record-title">${escapeHtml(title)}</div>
+                  <div class="note-record-subtitle">${escapeHtml(subtitle || "手动记录")}</div>
+                </div>
+                <button type="button" data-note-delete="${escapeHtml(note.id || "")}">删除</button>
+              </div>
+              <div class="notes-meta">评分：${escapeHtml(rating)}</div>
+              ${note.comment ? `<div class="note-record-comment">${escapeHtml(note.comment)}</div>` : '<div class="note-record-comment" style="color: var(--muted);">这条记录还没有写备注。</div>'}
+              <div class="note-record-time">${escapeHtml(formatNoteTime(note.updated_at || note.created_at))}</div>
+            </article>
+          `;
+        }).join("");
+        return `
+          <section class="note-city-group">
+            <button type="button" class="note-city-toggle" data-note-city="${escapeHtml(city)}" aria-expanded="${expanded ? "true" : "false"}">
+              <div>
+                <strong>${escapeHtml(city)}</strong>
+                <span>${escapeHtml(`${cityNotes.length} 条记录`)}</span>
+              </div>
+              <span class="note-city-caret">${expanded ? "▾" : "▸"}</span>
+            </button>
+            <div class="note-city-records" ${expanded ? "" : "hidden"}>
+              ${recordsHtml}
+            </div>
+          </section>
+        `;
+      }).join("");
+      noteSavedListEl.querySelectorAll("[data-note-city]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const city = button.getAttribute("data-note-city") || "";
+          state.noteExpandedCity = state.noteExpandedCity === city ? "" : city;
+          renderSavedUserNotes();
+        });
+      });
+      noteSavedListEl.querySelectorAll("[data-note-delete]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const noteId = button.getAttribute("data-note-delete");
+          await deleteUserNoteEntry(noteId);
+        });
+      });
+    }
+
+    async function loadUserNotes(sessionId) {
+      if (!sessionId) {
+        state.userNotes = [];
+        renderSavedUserNotes();
+        return;
+      }
+      try {
+        const result = await api(`/sessions/${sessionId}/notes?limit=100`);
+        state.userNotes = Array.isArray(result.items) ? result.items : [];
+      } catch (error) {
+        console.warn("loadUserNotes failed", error);
+        state.userNotes = [];
+      }
+      renderSavedUserNotes();
+    }
+
+    async function ensureSessionForUserNotes() {
+      if (state.sessionId) return state.sessionId;
+      const sessionId = await createSession();
+      await loadUserNotes(sessionId);
+      renderSavedUserNotes();
+      return sessionId;
+    }
+
+    async function searchUserNotePlaces() {
+      const query = String(notePlaceInputEl?.value || "").trim();
+      const city = String(noteCityInputEl?.value || "").trim() || getActivePlanningCity();
+      if (!query) {
+        setStatus("先输入想搜索的地点。");
+        return;
+      }
+      if (noteSearchMetaEl) noteSearchMetaEl.textContent = `正在搜索 ${city ? `${city} · ` : ""}${query}...`;
+      try {
+        const result = await api("/api/map/poi/search", {
+          method: "POST",
+          body: JSON.stringify({
+            keyword: query,
+            city: city || undefined,
+            search_mode: "region",
+            radius_meters: 3000,
+            limit: 8,
+            user_location: state.userLocation
+          })
+        });
+        state.noteSearchResults = Array.isArray(result.items) ? result.items : [];
+        state.noteSelectedPoi = state.noteSearchResults[0] || null;
+        if (state.noteSelectedPoi && notePlaceInputEl) {
+          notePlaceInputEl.value = state.noteSelectedPoi.name || query;
+        }
+        renderUserNoteSearchResults();
+        if (noteSearchMetaEl) {
+          noteSearchMetaEl.textContent = state.noteSearchResults.length
+            ? `已找到 ${state.noteSearchResults.length} 个候选地点，选择一个再保存会更稳。`
+            : "这次没有搜到明确结果，你也可以直接手动保存地点和评价。";
+        }
+        setStatus(state.noteSearchResults.length ? `地点搜索已完成：${query}` : `没有搜到明确地点：${query}`);
+      } catch (error) {
+        console.error(error);
+        state.noteSearchResults = [];
+        state.noteSelectedPoi = null;
+        renderUserNoteSearchResults();
+        if (noteSearchMetaEl) noteSearchMetaEl.textContent = `地点搜索失败：${error?.message || error}`;
+        setStatus(`地点搜索失败：${error?.message || error}`);
+      }
+    }
+
+    async function saveUserNoteEntry() {
+      const sessionId = await ensureSessionForUserNotes();
+      const city = String(noteCityInputEl?.value || "").trim() || getActivePlanningCity();
+      const query = String(notePlaceInputEl?.value || "").trim();
+      const comment = String(noteCommentInputEl?.value || "").trim();
+      const ratingValue = String(noteRatingInputEl?.value || "").trim();
+      const rating = ratingValue ? Number(ratingValue) : null;
+      const selectedPoi = state.noteSelectedPoi && typeof state.noteSelectedPoi === "object" ? state.noteSelectedPoi : null;
+      const placeName = String(selectedPoi?.name || query).trim();
+      if (!query) {
+        setStatus("先输入一个地点名称。");
+        return;
+      }
+      if (!comment && !rating && !selectedPoi) {
+        setStatus("至少补充评价、评分，或者先搜索并选中一个地点。");
+        return;
+      }
+      setStatus(`正在保存 ${placeName || query} 的用户记录...`);
+      try {
+        const result = await api(`/sessions/${sessionId}/notes`, {
+          method: "POST",
+          body: JSON.stringify({
+            city: city || undefined,
+            query,
+            place_name: placeName || query,
+            rating: Number.isFinite(rating) ? rating : null,
+            comment: comment || "",
+            poi: selectedPoi || null
+          })
+        });
+        const saved = result.note || null;
+        if (saved) {
+          state.userNotes = [saved, ...(Array.isArray(state.userNotes) ? state.userNotes.filter((item) => item?.id !== saved.id) : [])];
+        } else {
+          await loadUserNotes(sessionId);
+        }
+        renderSavedUserNotes();
+        resetUserNoteDraft({ preserveCity: true });
+        if (noteCityInputEl && city) noteCityInputEl.value = city;
+        setStatus(`已保存 ${placeName || query} 的用户记录。`);
+        showToast(`已保存 ${placeName || query}`, "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(`保存记录失败：${error?.message || error}`);
+      }
+    }
+
+    async function deleteUserNoteEntry(noteId) {
+      const normalizedId = String(noteId || "").trim();
+      if (!state.sessionId || !normalizedId) return;
+      try {
+        await api(`/sessions/${state.sessionId}/notes/${normalizedId}`, { method: "DELETE" });
+        state.userNotes = (Array.isArray(state.userNotes) ? state.userNotes : []).filter((item) => item?.id !== normalizedId);
+        renderSavedUserNotes();
+        setStatus("已删除这条用户记录。");
+        showToast("已删除记录", "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(`删除记录失败：${error?.message || error}`);
+      }
+    }
+
+    function loadLocalItineraryAdditions() {
+      try {
+        const raw = localStorage.getItem(LOCAL_ITINERARY_ADDITIONS_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch (error) {
+        console.warn("loadLocalItineraryAdditions failed", error);
+        return {};
+      }
+    }
+
+    function saveLocalItineraryAdditions() {
+      try {
+        localStorage.setItem(LOCAL_ITINERARY_ADDITIONS_KEY, JSON.stringify(state.localItineraryAdditions || {}));
+      } catch (error) {
+        console.warn("saveLocalItineraryAdditions failed", error);
+      }
+    }
+
+    function getSessionLocalItineraryAdditions(sessionId = state.sessionId) {
+      if (!sessionId) return [];
+      const additions = state.localItineraryAdditions?.[sessionId];
+      return Array.isArray(additions) ? additions : [];
+    }
+
+    function rememberSessionLocalAddition(sessionId, addition) {
+      if (!sessionId || !addition?.place?.location) return;
+      const existing = getSessionLocalItineraryAdditions(sessionId);
+      const poiId = String(addition?.place?.poi_id || "").trim();
+      const next = existing.slice();
+      const duplicate = next.some((item) => {
+        return String(item?.place?.poi_id || "").trim() === poiId
+          && Number(item?.day_index) === Number(addition.day_index)
+          && String(item?.slot || "") === String(addition.slot || "");
+      });
+      if (!duplicate) {
+        next.push(addition);
+        state.localItineraryAdditions = {
+          ...(state.localItineraryAdditions || {}),
+          [sessionId]: next
+        };
+        saveLocalItineraryAdditions();
+      }
+    }
+
+    function removeSessionLocalAddition(sessionId, target = {}) {
+      if (!sessionId) return;
+      const targetQuery = typeof target === "string" ? target : target?.query;
+      const targetPoiId = typeof target === "object" ? String(target?.poiId || "").trim() : "";
+      const targetDayIndex = typeof target === "object" && Number.isFinite(Number(target?.dayIndex))
+        ? Number(target.dayIndex)
+        : null;
+      const targetSlot = typeof target === "object" ? String(target?.slot || "").trim() : "";
+      const existing = getSessionLocalItineraryAdditions(sessionId);
+      const filtered = existing.filter((item) => {
+        const samePoiId = targetPoiId && String(item?.place?.poi_id || "").trim() === targetPoiId;
+        const sameQuery = targetQuery && normalizeMapMatchText(item?.query || "") === normalizeMapMatchText(targetQuery);
+        if (!samePoiId && !sameQuery) return true;
+        if (targetDayIndex != null && Number(item?.day_index) !== targetDayIndex) return true;
+        if (targetSlot && String(item?.slot || "").trim() !== targetSlot) return true;
+        return false;
+      });
+      state.localItineraryAdditions = {
+        ...(state.localItineraryAdditions || {}),
+        [sessionId]: filtered
+      };
+      saveLocalItineraryAdditions();
+    }
+
+    function mergeSessionLocalAdditionsIntoItinerary(itinerary, sessionId = state.sessionId) {
+      if (!itinerary || !sessionId) return itinerary;
+      const additions = getSessionLocalItineraryAdditions(sessionId);
+      if (!additions.length) return itinerary;
+      const merged = JSON.parse(JSON.stringify(itinerary));
+      if (!Array.isArray(merged.days)) merged.days = [];
+      const ensureDay = (dayIndex) => {
+        let day = merged.days.find((item) => Number(item?.day_index) === Number(dayIndex));
+        if (!day) {
+          day = { day_index: dayIndex, title: `第${dayIndex}天`, items: [] };
+          merged.days.push(day);
+          merged.days.sort((a, b) => Number(a?.day_index || 0) - Number(b?.day_index || 0));
+        }
+        if (!Array.isArray(day.items)) day.items = [];
+        return day;
+      };
+      for (const addition of additions) {
+        const location = parseLocation(addition?.place?.location);
+        if (!location) continue;
+        const day = ensureDay(addition.day_index);
+        const poiId = String(addition?.place?.poi_id || "").trim();
+        const exists = day.items.some((item) => {
+          const itemSelected = Array.isArray(item?.selected_places) ? item.selected_places : [];
+          const candidateSelected = (Array.isArray(item?.place_candidates) ? item.place_candidates : []).some((candidate) => {
+            return (Array.isArray(candidate?.selected_places) ? candidate.selected_places : []).some((selected) => {
+              return String(selected?.poi_id || "").trim() === poiId;
+            });
+          });
+          return itemSelected.some((selected) => String(selected?.poi_id || "").trim() === poiId) || candidateSelected;
+        });
+        if (exists) continue;
+        const slot = String(addition.slot || "晚上").trim() || "晚上";
+        let item = day.items.find((entry) => String(entry?.slot || "").trim() === slot);
+        if (!item) {
+          item = { slot, text: addition.query || addition.place?.name || "加点", place_candidates: [], selected_places: [] };
+          day.items.push(item);
+        }
+        item.selected_places = Array.isArray(item.selected_places) ? item.selected_places : [];
+        item.place_candidates = Array.isArray(item.place_candidates) ? item.place_candidates : [];
+        const normalizedPlace = {
+          poi_id: addition.place?.poi_id || "",
+          name: addition.place?.name || addition.query || "地点",
+          address: addition.place?.address || "",
+          category: addition.place?.category || "",
+          location,
+          resolve_note: addition.place?.resolve_note || "",
+          anchor_keyword: addition.place?.anchor_keyword || ""
+        };
+        item.selected_places.push(normalizedPlace);
+        item.place_candidates.push({
+          query: addition.query || normalizedPlace.name,
+          raw_query: addition.query || normalizedPlace.name,
+          aliases: [normalizedPlace.name].filter(Boolean),
+          category_hint: normalizedPlace.category || "",
+          intent_type: "direct_add",
+          selection_mode: "manual_add",
+          selected_places: [normalizedPlace]
+        });
+        if (!String(item.text || "").trim()) {
+          item.text = addition.query || normalizedPlace.name;
+        }
+      }
+      return merged;
+    }
+
+    function applyAlternativeToLocalItinerary(option, dayIndex, targetSlot) {
+      if (!state.sessionId || !option?.resolvedPoi?.location) return false;
+      rememberSessionLocalAddition(state.sessionId, {
+        day_index: dayIndex,
+        slot: targetSlot,
+        query: option.query,
+        place: {
+          poi_id: option.resolvedPoi.poi_id || "",
+          name: option.resolvedPoi.name || option.query,
+          address: option.resolvedPoi.address || "",
+          category: option.resolvedPoi.category || "",
+          location: option.resolvedPoi.location,
+          resolve_note: option.resolve_note || option.resolvedPoi.resolve_note || "",
+          anchor_keyword: option.anchor_keyword || option.resolvedPoi.anchor_keyword || ""
+        }
+      });
+      state.latestItinerary = mergeSessionLocalAdditionsIntoItinerary(state.latestItinerary || { city: getActivePlanningCity(), days: [] }, state.sessionId);
+      return true;
+    }
+
+    function applyResolvedPlaceToLocalItinerary(place, dayIndex, targetSlot, query = "") {
+      if (!state.sessionId || !place?.location) return false;
+      rememberSessionLocalAddition(state.sessionId, {
+        day_index: dayIndex,
+        slot: targetSlot,
+        query: query || place.name || "地点",
+        place: {
+          poi_id: place.poi_id || "",
+          name: place.name || query || "地点",
+          address: place.address || "",
+          category: place.category || "",
+          location: place.location,
+          resolve_note: place.resolve_note || "",
+          anchor_keyword: place.anchor_keyword || ""
+        }
+      });
+      state.latestItinerary = mergeSessionLocalAdditionsIntoItinerary(state.latestItinerary || { city: getActivePlanningCity(), days: [] }, state.sessionId);
+      return true;
+    }
+
+    function applyLocalDayManualOrder(dayIndex, orderedPoiIds, itinerary = state.latestItinerary) {
+      if (!itinerary || !Array.isArray(itinerary?.days)) return false;
+      const normalizedIds = (Array.isArray(orderedPoiIds) ? orderedPoiIds : [])
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+      if (normalizedIds.length < 2) return false;
+      const targetDay = itinerary.days.find((day) => Number(day?.day_index) === Number(dayIndex));
+      if (!targetDay) return false;
+      targetDay.manual_order_poi_ids = normalizedIds;
+      return true;
+    }
+
+    function clearPendingRouteRefresh() {
+      if (state.routeRefreshTimer) {
+        window.clearTimeout(state.routeRefreshTimer);
+        state.routeRefreshTimer = null;
+      }
+    }
+
+    state.localItineraryAdditions = loadLocalItineraryAdditions();
+
+    function scrollBottom() {
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    }
+
+    function setModelName(value) {
+      state.modelName = value || "-";
+      modelNameEl.textContent = state.modelName;
+    }
+
+    function formatSessionTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("zh-CN", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function summarizeMessageContent(content) {
+      const text = String(content || "").replace(/\s+/g, " ").trim();
+      if (!text) return "无内容";
+      return text.length > 70 ? `${text.slice(0, 70)}…` : text;
+    }
+
+    function setRecentPanelOpen(open) {
+      state.recentPanelOpen = Boolean(open);
+      if (sessionPanelEl) {
+        sessionPanelEl.classList.toggle("open", state.recentPanelOpen);
+        sessionPanelEl.setAttribute("aria-hidden", String(!state.recentPanelOpen));
+      }
+      if (sessionPanelToggleEl) {
+        sessionPanelToggleEl.setAttribute("aria-expanded", String(state.recentPanelOpen));
+      }
+    }
+
+    function updateUserLocation(location, message = "") {
+      const lng = Number(location?.lng);
+      const lat = Number(location?.lat);
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return false;
+      state.userLocation = { lng, lat };
+      if (message) setStatus(message);
+      renderMap();
+      return true;
+    }
+
+    function extractPointFromMapLocation(location) {
+      if (!location) return null;
+      if (typeof location.getLng === "function" && typeof location.getLat === "function") {
+        return { lng: location.getLng(), lat: location.getLat() };
+      }
+      return { lng: location.lng, lat: location.lat };
+    }
+
+    async function requestAmapLocationFallback(reason = "") {
+      if (!window.AMap || !state.mapConfig?.enabled) {
+        if (reason) setStatus(`浏览器定位失败：${reason}。已使用默认中心点。`);
+        renderMap();
+        return;
+      }
+      try {
+        setStatus(reason ? `浏览器定位失败，正在尝试地图定位...` : "正在获取当前位置...");
+        const location = await new Promise((resolve, reject) => {
+          AMap.plugin("AMap.Geolocation", () => {
+            try {
+              const geolocation = new AMap.Geolocation({
+                enableHighAccuracy: true,
+                timeout: 6000,
+                convert: true,
+                showButton: false,
+                showMarker: false,
+                showCircle: false
+              });
+              geolocation.getCurrentPosition((status, result) => {
+                if (status === "complete" && result?.position) {
+                  resolve(result.position);
+                  return;
+                }
+                reject(new Error(result?.message || result?.info || "地图定位失败"));
+              });
+            } catch (error) {
+              reject(error);
+            }
+          });
+        });
+        const point = extractPointFromMapLocation(location);
+        if (!updateUserLocation(point, "已定位到当前位置")) {
+          throw new Error("地图定位返回了无效坐标");
+        }
+      } catch (error) {
+        console.warn("requestAmapLocationFallback failed", error);
+        setStatus(`未能定位到当前位置，地图将使用默认中心点。${error?.message ? `(${error.message})` : ""}`);
+        renderMap();
+      }
+    }
+
+    function requestBrowserLocation() {
+      setStatus("正在获取当前位置...");
+      if (!navigator.geolocation) {
+        void requestAmapLocationFallback("浏览器不支持定位");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          updateUserLocation({
+            lng: position.coords.longitude,
+            lat: position.coords.latitude
+          }, "已定位到当前位置");
+        },
+        (error) => {
+          void requestAmapLocationFallback(error?.message || "浏览器定位失败");
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 }
+      );
+    }
+
+    function parseLocation(value) {
+      if (!value) return null;
+      if (Array.isArray(value) && value.length >= 2) {
+        const lng = Number(value[0]);
+        const lat = Number(value[1]);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+      }
+      if (typeof value === "string" && value.includes(",")) {
+        const [lngRaw, latRaw] = value.split(",");
+        const lng = Number(lngRaw);
+        const lat = Number(latRaw);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+      }
+      if (typeof value === "object") {
+        const lng = Number(value.lng ?? value.longitude ?? value.x);
+        const lat = Number(value.lat ?? value.latitude ?? value.y);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+        return parseLocation(value.location || value.point);
+      }
+      return null;
+    }
+
+    function syncMapModeButtons() {
+      if (mapMode2DBtnEl) {
+        mapMode2DBtnEl.classList.toggle("is-active", !state.map3D);
+        mapMode2DBtnEl.setAttribute("aria-pressed", String(!state.map3D));
+      }
+      if (mapMode3DBtnEl) {
+        mapMode3DBtnEl.classList.toggle("is-active", state.map3D);
+        mapMode3DBtnEl.setAttribute("aria-pressed", String(state.map3D));
+      }
+    }
+
+    function applyMapMode() {
+      syncMapModeButtons();
+      if (!state.map) return;
+      const viewMode = state.map3D ? "3D" : "2D";
+      state.map.setViewMode?.(viewMode);
+      state.map.setPitch?.(state.map3D ? 52 : 0);
+      state.map.setRotation?.(state.map3D ? -16 : 0);
+      if (state.mapBuildingLayer) {
+        if (state.map3D) {
+          state.mapBuildingLayer.show?.();
+        } else {
+          state.mapBuildingLayer.hide?.();
+        }
+      }
+      if (state.map3D) {
+        const currentZoom = Number(state.map.getZoom?.() ?? 0);
+        if (currentZoom && currentZoom < 13.8) {
+          state.map.setZoom?.(13.8);
+        } else if (currentZoom && currentZoom > 15.2) {
+          state.map.setZoom?.(15.2);
+        }
+      }
+    }
+
+    function ensureMapBuildingLayer() {
+      if (!state.map || !window.AMap?.Buildings || state.mapBuildingLayer) return;
+      state.mapBuildingLayer = new AMap.Buildings({
+        zooms: [15, 20],
+        heightFactor: 1.7,
+        wallColor: "rgba(30, 64, 175, 0.55)",
+        roofColor: "rgba(249, 115, 22, 0.28)"
+      });
+      state.map.addLayer?.(state.mapBuildingLayer);
+      if (!state.map3D) {
+        state.mapBuildingLayer.hide?.();
+      }
+    }
+
+    function setMapMode(nextIs3D) {
+      state.map3D = Boolean(nextIs3D);
+      syncMapModeButtons();
+      if (state.map) {
+        const center = parseLocation(state.map.getCenter?.());
+        const zoom = Number(state.map.getZoom?.());
+        state.mapCameraOverride = center
+          ? {
+              lng: center.lng,
+              lat: center.lat,
+              zoom: Number.isFinite(zoom) ? zoom : undefined
+            }
+          : null;
+        destroyMap();
+      }
+      renderMap();
+    }
+
+    function getMapUnavailableReason() {
+      if (state.mapSdkError) return `AMap SDK load failed: ${state.mapSdkError}`;
+      if (!state.mapConfig?.enabled) return "AMap browser key or security code is not configured.";
+      if (!window.AMap) return "AMap JS SDK is not available in the browser yet.";
+      return "Map is unavailable.";
+    }
+
+function getMapResultKey(item) {
+      const dayIndex = Number.isFinite(Number(item?.day_index)) ? Number(item.day_index) : 0;
+      const location = parseLocation(item?.location);
+      const poiId = String(item?.poi_id || "").trim();
+      const sourceQuery = String(item?.source_query || "").trim();
+      const slot = String(item?.slot || "").trim();
+      return [
+        poiId,
+        dayIndex,
+        String(item?._displayKind || ""),
+        sourceQuery,
+        slot,
+        String(item?.name || ""),
+        String(item?.address || ""),
+        location ? `${location.lng},${location.lat}` : "",
+      ].join("|");
+    }
+
+function focusMapResult(item) {
+      const location = parseLocation(item?.location);
+      if (!location || !state.map) return;
+      state.mapActiveResultKey = getMapResultKey(item);
+      const targetCenter = [location.lng, location.lat];
+      if (typeof state.map.setZoomAndCenter === "function") {
+        const zoom = Number.isFinite(Number(state.map.getZoom?.())) ? Number(state.map.getZoom?.()) : 12;
+        state.map.setZoomAndCenter(Math.max(zoom, state.map3D ? 14.4 : 15), targetCenter, false, 220);
+      } else {
+        state.map.setCenter?.(targetCenter);
+        state.map.setZoom?.(state.map3D ? 14.4 : 15);
+      }
+      if (window.AMap?.InfoWindow) {
+        const title = escapeHtml(item?.name || "地点");
+        const address = escapeHtml(item?.address || item?.category || "");
+        const dayText = Number.isFinite(Number(item?.day_index)) ? `第${Number(item.day_index)}天` : "";
+        const content = `
+          <div style="padding:8px 10px; min-width:160px;">
+            <div style="font-weight:700; margin-bottom:4px;">${title}</div>
+            <div style="font-size:12px; color:#64748b; line-height:1.6;">${[dayText, address].filter(Boolean).join(" · ")}</div>
+          </div>
+        `;
+        if (!state.mapInfoWindow) {
+          state.mapInfoWindow = new AMap.InfoWindow({
+            offset: new AMap.Pixel(0, -24),
+            autoMove: false
+          });
+        }
+        state.mapInfoWindow.setContent(content);
+        state.mapInfoWindow.open(state.map, targetCenter);
+      }
+      state.map.setCenter?.(targetCenter);
+      renderMapResults(getVisibleMapResults());
+    }
+
+    function getVisibleMapPendingCandidates() {
+      if (!Number.isFinite(Number(state.mapSelectedDay))) {
+        return Array.isArray(state.mapPendingCandidates) ? state.mapPendingCandidates : [];
+      }
+      return (Array.isArray(state.mapPendingCandidates) ? state.mapPendingCandidates : []).filter((item) => Number(item?.day_index) === Number(state.mapSelectedDay));
+    }
+
+    function getVisibleMapPreviewItems() {
+      if (!Number.isFinite(Number(state.mapSelectedDay))) {
+        return Array.isArray(state.mapPreviewItems) ? state.mapPreviewItems : [];
+      }
+      return (Array.isArray(state.mapPreviewItems) ? state.mapPreviewItems : []).filter((item) => Number(item?.day_index) === Number(state.mapSelectedDay));
+    }
+
+    async function selectPendingCandidate(item) {
+      if (!state.sessionId || !item?.location) return;
+      try {
+        const result = await api("/api/planner/itinerary/place-select", {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: state.sessionId,
+            day_index: item.day_index,
+            slot: item.slot,
+            query: item.source_query,
+            place: {
+              poi_id: item.poi_id,
+              name: item.name,
+              address: item.address,
+              category: item.category,
+              location: item.location
+            }
+          })
+        });
+        state.latestItinerary = result.itinerary || null;
+        await syncMapFromConversation(
+          "",
+          state.latestAssistantReply || getLatestAssistantText(state.messages || []),
+          state.latestItinerary,
+          {
+            incrementalPlace: item,
+            dayIndex: item.day_index,
+            slot: item.slot,
+            sourceQuery: item.source_query,
+            skipAlternativeHydration: true
+          }
+        );
+        setStatus(`已加入 ${item.name || item.source_query}`);
+      } catch (error) {
+        console.error(error);
+        setStatus(`加入地点失败：${error?.message || error}`);
+      }
+    }
+
+    async function deleteItineraryPlace(item) {
+      if (!state.sessionId || !item) return;
+      const placeName = String(item?.name || item?.source_query || "该地点").trim() || "该地点";
+      const dayIndex = Number(item?.day_index || state.mapSelectedDay || 0);
+      if (!dayIndex) return;
+      const ok = window.confirm(`确定从第${dayIndex}天删除“${placeName}”吗？`);
+      if (!ok) return;
+      try {
+        setStatus(`正在删除 ${placeName}...`);
+        const result = await api("/api/planner/itinerary/place-remove", {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: state.sessionId,
+            day_index: dayIndex,
+            slot: item.slot || "",
+            poi_id: item.poi_id || "",
+            place_name: item.name || "",
+            query: item.source_query || item.name || ""
+          })
+        });
+        removeSessionLocalAddition(state.sessionId, {
+          query: item.source_query || item.name || "",
+          poiId: item.poi_id || "",
+          dayIndex,
+          slot: item.slot || ""
+        });
+        state.latestItinerary = mergeSessionLocalAdditionsIntoItinerary(result.itinerary || state.latestItinerary, state.sessionId) || state.latestItinerary;
+        await syncMapFromConversation(
+          "",
+          state.latestAssistantReply || getLatestAssistantText(state.messages || []),
+          state.latestItinerary,
+          { skipAlternativeHydration: true }
+        );
+        setStatus(`已删除 ${placeName}。`);
+        showToast(`已删除 ${placeName}`, "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(`删除地点失败：${error?.message || error}`);
+      }
+    }
+
+    async function persistItineraryReorder(itineraryRows, fromIndex, toIndex) {
+      if (!state.sessionId) return;
+      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+      const nextRows = itineraryRows.slice();
+      const [moved] = nextRows.splice(fromIndex, 1);
+      nextRows.splice(toIndex, 0, moved);
+      const orderedPoiIds = nextRows.map((item) => String(item?.poi_id || "").trim()).filter(Boolean);
+      const dayIndex = Number(nextRows[0]?.day_index || state.mapSelectedDay || 0);
+      if (!orderedPoiIds.length || !dayIndex) return;
+      state.reorderRequestSeq += 1;
+      const requestSeq = state.reorderRequestSeq;
+      try {
+        setStatus(`已调整第${dayIndex}天顺序，正在保存...`);
+        if (applyLocalDayManualOrder(dayIndex, orderedPoiIds, state.latestItinerary)) {
+          replaceRouteSegmentsForDay(dayIndex, []);
+          renderMap();
+          scheduleRouteRefresh(dayIndex);
+        }
+        const result = await api("/api/planner/itinerary/reorder", {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: state.sessionId,
+            day_index: dayIndex,
+            ordered_poi_ids: orderedPoiIds
+          })
+        });
+        if (requestSeq !== state.reorderRequestSeq) return;
+        state.latestItinerary = mergeSessionLocalAdditionsIntoItinerary(result.itinerary || state.latestItinerary, state.sessionId) || state.latestItinerary;
+        renderMap();
+        setStatus(`第${dayIndex}天顺序已更新。`);
+        showToast(`第${dayIndex}天顺序已更新`, "success");
+      } catch (error) {
+        console.error(error);
+        if (requestSeq !== state.reorderRequestSeq) return;
+        setStatus(`已先在当前页面调整第${dayIndex}天顺序，但后端保存失败。`);
+        showToast(`第${dayIndex}天顺序已先在当前页面调整`, "success");
+      }
+    }
+
+    function renderMapResults(items) {
+      const rows = Array.isArray(items) ? items : [];
+      const itineraryRows = rows.filter((item) => item?._displayKind !== "search");
+      const manualRows = rows.filter((item) => item?._displayKind === "search");
+      const previewRows = getVisibleMapPreviewItems().filter((item) => {
+        return !rows.some((resolved) => {
+          return Number(resolved?.day_index || 0) === Number(item?.day_index || 0)
+            && normalizeMapMatchText(resolved?.source_query || resolved?.name || "") === normalizeMapMatchText(item?.source_query || item?.name || "");
+        });
+      }).map((item, index) => ({
+        ...item,
+        _displayKind: "preview",
+        _displayOrder: itineraryRows.length + index + 1
+      }));
+      const pendingRows = getVisibleMapPendingCandidates();
+      if (mapItineraryListEl) mapItineraryListEl.innerHTML = "";
+      if (mapSearchResultListEl) mapSearchResultListEl.innerHTML = "";
+      if (!itineraryRows.length && !manualRows.length && !previewRows.length && !pendingRows.length) {
+        return;
+      }
+
+      const usedPendingIndexes = new Set();
+      const renderPendingSubresults = (baseItem) => {
+        const relatedRows = [];
+        pendingRows.forEach((pendingItem, pendingIndex) => {
+          if (usedPendingIndexes.has(pendingIndex)) return;
+          if (!pendingCandidateBelongsToBase(pendingItem, baseItem)) return;
+          usedPendingIndexes.add(pendingIndex);
+          relatedRows.push({ item: pendingItem, index: pendingIndex });
+        });
+        if (!relatedRows.length) return "";
+        return `
+          <div class="map-subresults">
+            ${relatedRows.map(({ item, index }) => {
+              const distance = formatDistanceMeters(item.distance_meters);
+              return `
+                <div class="map-subresult">
+                  <div class="map-result-tag">待选择候选</div>
+                  <h4>${escapeHtml(item.name || `候选地点 ${index + 1}`)}</h4>
+                  <p>${escapeHtml(item.address || item.category || "")}${distance ? ` · ${escapeHtml(distance)}` : ""}</p>
+                  <div class="map-result-actions">
+                    <button type="button" data-pending-select="${index}">加入当天行程</button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      };
+
+      const confirmedHtml = itineraryRows.map((item, index) => {
+        const distance = formatDistanceMeters(item.distance_meters);
+        const description = [item.address || item.category || "", distance, item.resolve_note || ""].filter(Boolean).join(" · ");
+        const draggable = itineraryRows.length > 1 && String(item?.poi_id || "").trim();
+        return `
+          <article
+            class="map-result ${draggable ? "is-draggable" : ""}"
+            role="button"
+            tabindex="0"
+            data-resolved-index="${index}"
+            ${draggable ? 'draggable="true"' : ""}
+          >
+            <div class="map-result-head">
+              ${item._displayOrder ? `<span class="map-order-badge">${item._displayOrder}</span>` : ""}
+              <h3>${escapeHtml(item.name || `地点 ${index + 1}`)}</h3>
+              ${draggable ? '<span class="map-result-handle" aria-hidden="true">⋮⋮</span>' : ""}
+            </div>
+            <p>${escapeHtml(description)}</p>
+            <div class="map-result-actions">
+              <button type="button" class="danger" data-itinerary-remove="${index}">删除地点</button>
+            </div>
+            ${renderPoiHierarchyMeta(item)}
+            ${renderPendingSubresults(item)}
+          </article>
+        `;
+      }).join("");
+
+      const previewHtml = previewRows.map((item, index) => {
+        const description = item.address || item.sourceLine || item.category || "已识别到地点名称，等待坐标解析";
+        return `
+          <article class="map-result">
+            <div class="map-result-tag" style="background: rgba(217, 119, 6, 0.12); color: #b45309;">待解析坐标</div>
+            <div class="map-result-head">
+              ${item._displayOrder ? `<span class="map-order-badge">${item._displayOrder}</span>` : ""}
+              <h3>${escapeHtml(item.name || `地点 ${index + 1}`)}</h3>
+            </div>
+            <p>${escapeHtml(description)}</p>
+            ${renderPendingSubresults(item)}
+          </article>
+        `;
+      }).join("");
+
+      const pendingHtml = pendingRows.map((item, index) => {
+        if (usedPendingIndexes.has(index)) return "";
+        const distance = formatDistanceMeters(item.distance_meters);
+        const description = [item.source_query ? `${item.source_query} 候选` : "", item.address || item.category || "", distance].filter(Boolean).join(" · ");
+        return `
+          <article class="map-result" data-pending-candidate="${index}">
+            <div class="map-result-tag">待选择候选</div>
+            <h3>${escapeHtml(item.name || `候选地点 ${index + 1}`)}</h3>
+            <p>${escapeHtml(description)}</p>
+            <div class="map-result-actions">
+              <button type="button" data-pending-select="${index}">加入当天行程</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      const manualHtml = manualRows.map((item, index) => {
+        const distance = formatDistanceMeters(item.distance_meters);
+        const days = (Array.isArray(state.mapItineraryDays) ? state.mapItineraryDays : [])
+          .filter((day) => Number.isFinite(Number(day?.day_index)))
+          .sort((a, b) => Number(a.day_index) - Number(b.day_index));
+        const description = [item.address || item.category || "", distance, item.resolve_note || ""].filter(Boolean).join(" · ");
+        const actionHtml = days.length
+          ? `
+            <div class="map-result-actions">
+              ${days.map((day) => `<button type="button" data-manual-add="${index}" data-manual-day="${Number(day.day_index)}">添加到第${Number(day.day_index)}天</button>`).join("")}
+            </div>
+          `
+          : `<p style="margin-top:10px; color:#94a3b8;">先生成行程后，才能把搜索地点加入某一天。</p>`;
+        return `
+          <article class="map-result" role="button" tabindex="0" data-manual-index="${index}">
+            <div class="map-result-tag" style="background: rgba(37, 99, 235, 0.12); color: #1d4ed8;">搜索结果</div>
+            <h3>${escapeHtml(item.name || `搜索地点 ${index + 1}`)}</h3>
+            <p>${escapeHtml(description)}</p>
+            ${actionHtml}
+          </article>
+        `;
+      }).join("");
+
+      if (mapItineraryListEl) {
+        mapItineraryListEl.innerHTML = `${confirmedHtml}${previewHtml}${pendingHtml}`;
+      }
+      if (mapSearchResultListEl) {
+        mapSearchResultListEl.innerHTML = manualHtml || '<div class="session-empty">搜索后，结果会显示在这里，并可直接加入某一天。</div>';
+      }
+
+      mapItineraryListEl?.querySelectorAll("[data-resolved-index]").forEach((element) => {
+        const resolvedIndex = Number(element.getAttribute("data-resolved-index"));
+        const item = itineraryRows[resolvedIndex];
+        if (!item || !parseLocation(item.location)) return;
+        const isActive = state.mapActiveResultKey === getMapResultKey(item);
+        element.classList.toggle("is-active", isActive);
+        if (isActive) {
+          element.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+        const activate = () => focusMapResult(item);
+        element.addEventListener("click", activate);
+        element.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate();
+          }
+        });
+        if (element.getAttribute("draggable") === "true") {
+          element.addEventListener("dragstart", (event) => {
+            element.classList.add("dragging");
+            event.dataTransfer?.setData("text/plain", String(resolvedIndex));
+            if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+          });
+          element.addEventListener("dragend", () => {
+            element.classList.remove("dragging");
+            mapItineraryListEl?.querySelectorAll(".drop-target").forEach((node) => node.classList.remove("drop-target"));
+          });
+          element.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            element.classList.add("drop-target");
+          });
+          element.addEventListener("dragleave", () => {
+            element.classList.remove("drop-target");
+          });
+          element.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            element.classList.remove("drop-target");
+            const fromIndex = Number(event.dataTransfer?.getData("text/plain"));
+            const toIndex = resolvedIndex;
+            if (!Number.isFinite(fromIndex)) return;
+            await persistItineraryReorder(itineraryRows, fromIndex, toIndex);
+          });
+        }
+      });
+
+      mapItineraryListEl?.querySelectorAll("[data-itinerary-remove]").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(button.getAttribute("data-itinerary-remove"));
+          const item = itineraryRows[index];
+          if (!item) return;
+          const originalText = button.textContent;
+          button.disabled = true;
+          button.textContent = "删除中...";
+          await deleteItineraryPlace(item);
+          if (button.isConnected) {
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+        });
+      });
+
+      mapSearchResultListEl?.querySelectorAll("[data-manual-index]").forEach((element) => {
+        const manualIndex = Number(element.getAttribute("data-manual-index"));
+        const item = manualRows[manualIndex];
+        if (!item || !parseLocation(item.location)) return;
+        const isActive = state.mapActiveResultKey === getMapResultKey(item);
+        element.classList.toggle("is-active", isActive);
+        if (isActive) {
+          element.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+        const activate = () => focusMapResult(item);
+        element.addEventListener("click", activate);
+        element.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate();
+          }
+        });
+      });
+
+      mapItineraryListEl?.querySelectorAll("[data-pending-select]").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(button.dataset.pendingSelect);
+          const item = pendingRows[index];
+          if (!item) return;
+          await selectPendingCandidate(item);
+        });
+      });
+
+      mapSearchResultListEl?.querySelectorAll("[data-manual-add]").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const index = Number(button.dataset.manualAdd);
+          const dayIndex = Number(button.dataset.manualDay);
+          const item = manualRows[index];
+          if (!item || !dayIndex) return;
+          const originalText = button.textContent;
+          button.disabled = true;
+          button.textContent = "添加中...";
+          await addResolvedPlaceToDay(item, dayIndex, item.source_query || item.name || "");
+          if (button.isConnected) {
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+        });
+      });
+    }
+
+    function getRouteColor(dayIndex) {
+      const palette = ["#d97706", "#0f766e", "#2563eb", "#be185d", "#7c3aed", "#0891b2"];
+      const index = Number.isFinite(Number(dayIndex)) && Number(dayIndex) > 0 ? Number(dayIndex) - 1 : 0;
+      return palette[index % palette.length];
+    }
+
+    function getVisibleMapItineraryResults() {
+      if (!Number.isFinite(Number(state.mapSelectedDay))) {
+        return Array.isArray(state.mapSearchResults) ? state.mapSearchResults : [];
+      }
+      return (Array.isArray(state.mapSearchResults) ? state.mapSearchResults : []).filter((item) => Number(item?.day_index) === Number(state.mapSelectedDay));
+    }
+
+    function getVisibleMapManualSearchResults() {
+      return Array.isArray(state.mapManualSearchResults) ? state.mapManualSearchResults : [];
+    }
+
+    function sortPlacesByManualDayOrder(rows, itinerary = state.latestItinerary) {
+      const items = Array.isArray(rows) ? rows.slice() : [];
+      const days = Array.isArray(itinerary?.days) ? itinerary.days : [];
+      const orderMaps = new Map();
+      for (const day of days) {
+        const dayIndex = Number(day?.day_index);
+        const orderedPoiIds = Array.isArray(day?.manual_order_poi_ids) ? day.manual_order_poi_ids : [];
+        if (!Number.isFinite(dayIndex) || orderedPoiIds.length < 2) continue;
+        orderMaps.set(dayIndex, new Map(orderedPoiIds.map((poiId, index) => [String(poiId || "").trim(), index])));
+      }
+      return items
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => {
+          const dayA = Number(a.item?.day_index || 0);
+          const dayB = Number(b.item?.day_index || 0);
+          if (dayA !== dayB) return dayA - dayB;
+          const orderMap = orderMaps.get(dayA);
+          const orderA = orderMap?.get(String(a.item?.poi_id || "").trim());
+          const orderB = orderMap?.get(String(b.item?.poi_id || "").trim());
+          const normalizedA = Number.isFinite(Number(orderA)) ? Number(orderA) : Number.MAX_SAFE_INTEGER;
+          const normalizedB = Number.isFinite(Number(orderB)) ? Number(orderB) : Number.MAX_SAFE_INTEGER;
+          if (normalizedA !== normalizedB) return normalizedA - normalizedB;
+          return a.index - b.index;
+        })
+        .map((entry) => entry.item);
+    }
+
+    function getOrderedItineraryPlacesForDay(dayIndex, itinerary = state.latestItinerary) {
+      const targetDay = Number(dayIndex);
+      return sortPlacesByManualDayOrder(
+        (Array.isArray(state.mapSearchResults) ? state.mapSearchResults : []).filter((item) => Number(item?.day_index) === targetDay),
+        itinerary
+      );
+    }
+
+    function replaceRouteSegmentsForDay(dayIndex, nextSegments) {
+      const targetDay = Number(dayIndex);
+      const preserved = (Array.isArray(state.mapRouteSegments) ? state.mapRouteSegments : [])
+        .filter((item) => Number(item?.day_index) !== targetDay);
+      state.mapRouteSegments = [...preserved, ...(Array.isArray(nextSegments) ? nextSegments : [])];
+    }
+
+    async function refreshRouteForDay(dayIndex, options = {}) {
+      const targetDay = Number(dayIndex);
+      if (!targetDay || !state.mapConfig?.enabled) return;
+      const routePoints = getOrderedItineraryPlacesForDay(targetDay, options?.itinerary || state.latestItinerary)
+        .map(normalizeRoutePoint)
+        .filter(Boolean)
+        .slice(0, 10);
+      if (routePoints.length < 2) {
+        replaceRouteSegmentsForDay(targetDay, []);
+        renderMap();
+        return;
+      }
+      try {
+        const routeRes = await api("/api/map/route/plan", {
+          method: "POST",
+          body: JSON.stringify({
+            start: routePoints[0].location,
+            points: routePoints.slice(1),
+            mode: "drive"
+          })
+        });
+        const segments = Array.isArray(routeRes.route?.segments)
+          ? routeRes.route.segments.map((segment) => ({
+              ...segment,
+              day_index: targetDay
+            }))
+          : [];
+        replaceRouteSegmentsForDay(targetDay, segments);
+        renderMap();
+      } catch (error) {
+        console.warn("refreshRouteForDay failed", targetDay, error);
+      }
+    }
+
+    function buildIncrementalMapPlaceEntry(place, options = {}) {
+      const location = parseLocation(place?.location);
+      if (!location) return null;
+      return {
+        ...place,
+        location,
+        day_index: Number.isFinite(Number(options?.dayIndex)) ? Number(options.dayIndex) : Number(place?.day_index || 0) || null,
+        day_title: String(options?.dayTitle || place?.day_title || "").trim(),
+        slot: String(options?.slot || place?.slot || "").trim(),
+        slot_text: String(options?.slotText || place?.slot_text || "").trim(),
+        source_query: String(options?.sourceQuery || place?.source_query || place?.name || "").trim(),
+        category_hint: String(options?.categoryHint || place?.category_hint || "").trim()
+      };
+    }
+
+    function removeTransientMapEntriesForQuery(query, dayIndex = null) {
+      const normalizedQuery = normalizeMapMatchText(query || "");
+      if (!normalizedQuery) return;
+      const matchesTarget = (item) => {
+        const sameQuery = normalizeMapMatchText(item?.source_query || item?.query || item?.name || "") === normalizedQuery;
+        if (!sameQuery) return false;
+        if (!Number.isFinite(Number(dayIndex))) return true;
+        return Number(item?.day_index) === Number(dayIndex);
+      };
+      state.mapPendingCandidates = (Array.isArray(state.mapPendingCandidates) ? state.mapPendingCandidates : [])
+        .filter((item) => !matchesTarget(item));
+      state.mapPreviewItems = (Array.isArray(state.mapPreviewItems) ? state.mapPreviewItems : [])
+        .filter((item) => !matchesTarget(item));
+    }
+
+    async function applyIncrementalMapPlaceUpdate(place, options = {}) {
+      const entry = buildIncrementalMapPlaceEntry(place, options);
+      if (!entry?.location || !Number.isFinite(Number(entry?.day_index))) return false;
+      const targetDay = Number(entry.day_index);
+      const dayRows = Array.isArray(state.latestItinerary?.days) ? state.latestItinerary.days : [];
+      state.mapItineraryDays = dayRows;
+      if (!Number.isFinite(Number(state.mapSelectedDay))) {
+        state.mapSelectedDay = dayRows.length ? Number(dayRows[0]?.day_index || targetDay) : targetDay;
+      }
+      const normalizedPoiId = String(entry?.poi_id || "").trim();
+      const normalizedName = normalizeMapMatchText(entry?.name || "");
+      const currentRows = Array.isArray(state.mapSearchResults) ? state.mapSearchResults : [];
+      const nextRows = currentRows.filter((item) => {
+        if (Number(item?.day_index) !== targetDay) return true;
+        const itemPoiId = String(item?.poi_id || "").trim();
+        if (normalizedPoiId && itemPoiId && normalizedPoiId === itemPoiId) return false;
+        const itemName = normalizeMapMatchText(item?.name || "");
+        return !(normalizedName && itemName && normalizedName === itemName);
+      });
+      nextRows.push(entry);
+      state.mapSearchResults = sortPlacesByManualDayOrder(nextRows, options?.itinerary || state.latestItinerary).slice(0, 30);
+      removeTransientMapEntriesForQuery(options?.sourceQuery || entry.source_query, targetDay);
+      if (options?.removeAlternativeQuery) {
+        const normalizedAltQuery = normalizeMapMatchText(options.removeAlternativeQuery);
+        state.alternativeOptions = (Array.isArray(state.alternativeOptions) ? state.alternativeOptions : [])
+          .filter((item) => normalizeMapMatchText(item?.query || "") !== normalizedAltQuery);
+      }
+      state.mapActiveResultKey = null;
+      renderAlternativePanel();
+      renderMap();
+      await refreshRouteForDay(targetDay, { itinerary: options?.itinerary || state.latestItinerary });
+      return true;
+    }
+
+    function scheduleRouteRefresh(dayIndex) {
+      const targetDay = Number(dayIndex);
+      if (!targetDay) return;
+      clearPendingRouteRefresh();
+      state.routeRefreshTimer = window.setTimeout(async () => {
+        state.routeRefreshTimer = null;
+        await refreshRouteForDay(targetDay);
+      }, 420);
+    }
+
+    function getVisibleMapResults() {
+      const itineraryRows = sortPlacesByManualDayOrder(getVisibleMapItineraryResults(), state.latestItinerary).map((item, index) => ({
+        ...item,
+        _displayKind: "itinerary",
+        _displayOrder: index + 1
+      }));
+      const manualRows = getVisibleMapManualSearchResults().map((item) => ({
+        ...item,
+        _displayKind: "search",
+        _displayOrder: null
+      }));
+      return [...itineraryRows, ...manualRows];
+    }
+
+    function getVisibleMapRouteSegments() {
+      if (!Number.isFinite(Number(state.mapSelectedDay))) {
+        return Array.isArray(state.mapRouteSegments) ? state.mapRouteSegments : [];
+      }
+      return (Array.isArray(state.mapRouteSegments) ? state.mapRouteSegments : []).filter((item) => Number(item?.day_index) === Number(state.mapSelectedDay));
+    }
+
+    function normalizeMapMatchText(value) {
+      return String(value || "")
+        .trim()
+        .replace(/[（(][^()（）]+[)）]/gu, "")
+        .replace(/[·•\s\-_/，。、！？!?:：；;"'`]/gu, "")
+        .toLowerCase();
+    }
+
+    function getPlaceIdentityKeys(source) {
+      const rawKeys = [
+        source?.query,
+        source?.title,
+        source?.source_query,
+        source?.matched_keyword,
+        source?.anchor_keyword,
+        source?.name,
+        source?.address
+      ];
+      return Array.from(new Set(rawKeys.map((item) => normalizeMapMatchText(item)).filter(Boolean)));
+    }
+
+    function collectSelectedPlacesFromItinerary(itinerary = state.latestItinerary) {
+      const rows = [];
+      const days = Array.isArray(itinerary?.days) ? itinerary.days : [];
+      for (const day of days) {
+        const dayIndex = Number(day?.day_index);
+        const items = Array.isArray(day?.items) ? day.items : [];
+        for (const item of items) {
+          const slot = String(item?.slot || "").trim();
+          const pushPlace = (selected, sourceQuery = item?.text || "") => {
+            const location = parseLocation(selected?.location);
+            rows.push({
+              poi_id: String(selected?.poi_id || "").trim(),
+              name: selected?.name || "",
+              address: selected?.address || "",
+              location,
+              day_index: Number.isFinite(dayIndex) ? dayIndex : null,
+              slot,
+              source_query: sourceQuery || "",
+              anchor_keyword: selected?.anchor_keyword || ""
+            });
+          };
+          const selectedPlaces = Array.isArray(item?.selected_places) ? item.selected_places : [];
+          for (const selected of selectedPlaces) {
+            pushPlace(selected);
+          }
+          const placeCandidates = Array.isArray(item?.place_candidates) ? item.place_candidates : [];
+          for (const candidate of placeCandidates) {
+            const candidateQuery = String(candidate?.query || item?.text || "").trim();
+            const candidateSelected = Array.isArray(candidate?.selected_places) ? candidate.selected_places : [];
+            for (const selected of candidateSelected) {
+              pushPlace(selected, candidateQuery);
+            }
+          }
+        }
+      }
+      return rows;
+    }
+
+    function buildItinerarySelectionSignature(itinerary = state.latestItinerary) {
+      return collectSelectedPlacesFromItinerary(itinerary)
+        .map((item) => [
+          String(item?.poi_id || "").trim(),
+          normalizeMapMatchText(item?.name || ""),
+          normalizeMapMatchText(item?.address || ""),
+          Number(item?.day_index || 0),
+          String(item?.slot || "").trim()
+        ].join("|"))
+        .join("||");
+    }
+
+    function isPlaceDuplicateInItinerary(placeLike, itinerary = state.latestItinerary) {
+      const poiId = String(placeLike?.resolvedPoi?.poi_id || placeLike?.poi_id || "").trim();
+      const candidateKeys = getPlaceIdentityKeys({
+        ...placeLike,
+        name: placeLike?.resolvedPoi?.name || placeLike?.name,
+        address: placeLike?.resolvedPoi?.address || placeLike?.address,
+        anchor_keyword: placeLike?.resolvedPoi?.anchor_keyword || placeLike?.anchor_keyword
+      });
+      return collectSelectedPlacesFromItinerary(itinerary).some((item) => {
+        const existingPoiId = String(item?.poi_id || "").trim();
+        if (poiId && existingPoiId && poiId === existingPoiId) return true;
+        const existingKeys = getPlaceIdentityKeys(item);
+        return candidateKeys.some((candidateKey) => {
+          return existingKeys.some((existingKey) => {
+            return candidateKey === existingKey || candidateKey.includes(existingKey) || existingKey.includes(candidateKey);
+          });
+        });
+      });
+    }
+
+    function getPreferredAlternativeAnchorLocation() {
+      const selectedDay = Number(state.mapSelectedDay);
+      const selectedDayResolved = (Array.isArray(state.mapSearchResults) ? state.mapSearchResults : [])
+        .filter((item) => Number(item?.day_index) === selectedDay)
+        .map((item) => parseLocation(item?.location))
+        .filter(Boolean);
+      if (selectedDayResolved.length) {
+        return selectedDayResolved[selectedDayResolved.length - 1];
+      }
+      const allResolved = collectSelectedPlacesFromItinerary(state.latestItinerary)
+        .map((item) => parseLocation(item?.location))
+        .filter(Boolean);
+      return allResolved.length ? allResolved[allResolved.length - 1] : null;
+    }
+
+    function getMapEntityMatchKeys(item) {
+      return Array.from(new Set([
+        normalizeMapMatchText(item?.source_query),
+        normalizeMapMatchText(item?.name),
+        normalizeMapMatchText(item?.address)
+      ].filter(Boolean)));
+    }
+
+    function pendingCandidateBelongsToBase(pendingItem, baseItem) {
+      const pendingKeys = getMapEntityMatchKeys(pendingItem);
+      const baseKeys = getMapEntityMatchKeys(baseItem);
+      if (!pendingKeys.length || !baseKeys.length) return false;
+      return pendingKeys.some((pendingKey) => {
+        return baseKeys.some((baseKey) => {
+          return pendingKey === baseKey || pendingKey.includes(baseKey) || baseKey.includes(pendingKey);
+        });
+      });
+    }
+
+    function renderMapDayTabs() {
+      if (!mapDayTabsEl) return;
+      const days = (Array.isArray(state.mapItineraryDays) ? state.mapItineraryDays : [])
+        .filter((day) => Number.isFinite(Number(day?.day_index)))
+        .sort((a, b) => Number(a.day_index) - Number(b.day_index));
+      if (!days.length) {
+        mapDayTabsEl.hidden = true;
+        mapDayTabsEl.innerHTML = "";
+        return;
+      }
+
+      const validDayIndexes = days.map((day) => Number(day.day_index));
+      if (!validDayIndexes.includes(Number(state.mapSelectedDay))) {
+        state.mapSelectedDay = validDayIndexes[0];
+      }
+
+      mapDayTabsEl.hidden = false;
+      mapDayTabsEl.innerHTML = days.map((day) => {
+        const dayIndex = Number(day.day_index);
+        const title = String(day.title || "").trim();
+        return `
+          <button
+            type="button"
+            class="map-day-tab ${dayIndex === Number(state.mapSelectedDay) ? "is-active" : ""}"
+            data-map-day="${dayIndex}"
+          >
+            ${escapeHtml(`第${dayIndex}天`)}${title ? `<span> · ${escapeHtml(title)}</span>` : ""}
+          </button>
+        `;
+      }).join("");
+
+      mapDayTabsEl.querySelectorAll("[data-map-day]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.mapSelectedDay = Number(button.dataset.mapDay);
+          renderMap();
+        });
+      });
+    }
+
+    function normalizeRoutePoint(item) {
+      const location = parseLocation(item?.location);
+      if (!location) return null;
+      return {
+        poi_id: item.poi_id || item.id || item.name,
+        name: item.name || "地点",
+        location
+      };
+    }
+
+    function extractPlaceCandidatesFromItinerary(itinerary, assistantReply = "", options = {}) {
+      const includeReplyFallback = options.includeReplyFallback === true;
+      const days = Array.isArray(itinerary?.days) ? itinerary.days : [];
+      const candidates = [];
+      const seen = new Set();
+      const addCandidate = (candidate) => {
+        const query = String(candidate?.query || "").trim();
+        if (!query) return;
+        const aliases = Array.isArray(candidate?.aliases) ? candidate.aliases.filter(Boolean) : [];
+        const categoryHint = String(candidate?.categoryHint || "");
+        const intentType = String(candidate?.intentType || "explicit_poi");
+        const selectionMode = String(candidate?.selectionMode || "auto_resolve");
+        const selectedPlaces = Array.isArray(candidate?.selectedPlaces) ? candidate.selectedPlaces.filter(Boolean) : [];
+        const dayIndex = Number.isFinite(Number(candidate?.day_index)) ? Number(candidate.day_index) : null;
+        const dayTitle = String(candidate?.day_title || "");
+        const slot = String(candidate?.slot || "");
+        const sourceLine = String(candidate?.sourceLine || candidate?.slot_text || "");
+        const dedupeKey = [dayIndex || 0, query, aliases.join("|"), categoryHint, intentType, slot, sourceLine].join("::");
+        if (seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+        candidates.push({
+          query,
+          aliases,
+          categoryHint,
+          intentType,
+          selectionMode,
+          selectedPlaces,
+          sourceLine,
+          day_index: dayIndex,
+          day_title: dayTitle,
+          slot,
+          slot_text: sourceLine
+        });
+      };
+      for (const day of days) {
+        const dayIndex = Number(day?.day_index);
+        const dayTitle = String(day?.title || "");
+        const items = Array.isArray(day?.items) ? day.items : [];
+        for (const item of items) {
+          const slot = String(item?.slot || "");
+          const slotText = String(item?.text || "");
+          const selectedPlaces = Array.isArray(item?.selected_places) ? item.selected_places : [];
+          for (const selected of selectedPlaces) {
+            addCandidate({
+              query: selected?.name || item?.text || slotText,
+              aliases: [String(item?.text || "").trim()].filter(Boolean),
+              categoryHint: selected?.category || "",
+              intentType: "direct_add",
+              selectionMode: "manual_add",
+              selectedPlaces: [selected],
+              sourceLine: slotText,
+              day_index: Number.isFinite(dayIndex) ? dayIndex : null,
+              day_title: dayTitle,
+              slot,
+              slot_text: slotText
+            });
+          }
+          const places = Array.isArray(item?.place_candidates) ? item.place_candidates : [];
+          for (const place of places) {
+            addCandidate({
+              query: place?.query,
+              aliases: place?.aliases,
+              categoryHint: place?.category_hint,
+              intentType: place?.intent_type,
+              selectionMode: place?.selection_mode,
+              selectedPlaces: place?.selected_places,
+              sourceLine: slotText,
+              day_index: Number.isFinite(dayIndex) ? dayIndex : null,
+              day_title: dayTitle,
+              slot,
+              slot_text: slotText
+            });
+          }
+        }
+      }
+      // Once itinerary already carries structured place_candidates / selected_places,
+      // avoid re-parsing the whole assistant reply again. That extra reply pass was a
+      // major source of repeated POI resolve requests during the first sync.
+      if (includeReplyFallback && !candidates.length) {
+        const replyCandidates = extractPlaceCandidatesFromReply(assistantReply);
+        for (const candidate of replyCandidates) {
+          addCandidate(candidate);
+        }
+      }
+      return candidates;
+    }
+
+    function getLatestAssistantText(messages) {
+      const rows = Array.isArray(messages) ? messages : [];
+      for (let index = rows.length - 1; index >= 0; index -= 1) {
+        if (rows[index]?.role === "assistant" && rows[index]?.content) {
+          return String(rows[index].content);
+        }
+      }
+      return "";
+    }
+
+    function buildConversationContext() {
+      if (!state.messages.length) return "";
+      const lines = [];
+      if (Number.isFinite(Number(state.mapSelectedDay))) {
+        lines.push(`当前地图选中：第${Number(state.mapSelectedDay)}天`);
+      }
+      lines.push(
+        ...state.messages
+          .slice(-8)
+          .map((message) => `${message.role === "user" ? "用户" : "助手"}：${message.content || ""}`)
+      );
+      return lines.join("\n");
+    }
+
+    function normalizePlaceCandidate(raw) {
+      let text = String(raw || "").trim();
+      if (!text) return "";
+      text = text.replace(/^[\-*•]+\s*/u, "");
+      text = text.replace(/^[第\d一二三四五六七八九十两天日\s]+/, "");
+      text = text.replace(/^(上午|中午|下午|傍晚|晚上|夜里|夜间|早上|午后|清晨|凌晨)[：:]\s*/u, "");
+      text = text.replace(/^第[0-9一二三四五六七八九十]+天\s*[：:]?\s*/u, "");
+      text = text.replace(/^(从|去|到|前往|先去|先到|再去|随后去|可以去|建议去|晚上去|在)\s*/u, "");
+      text = text.replace(/(开始|顺路|漫步|散步|打卡|休息|看夜景|吃饭|用餐|收尾|小坐|闲逛|结束行程).*$/u, "");
+      text = text.replace(/(周边餐饮|周边美食|附近餐饮|附近美食).*$/u, "");
+      text = text.replace(/(周边|附近|一带|片区|商圈|区域)$/u, "");
+      text = text.replace(/[，。；！!？?]+$/u, "");
+      text = text.replace(/^\d+[.、]\s*/u, "");
+      text = text.replace(/[“”"'`]/g, "");
+      return text.trim();
+    }
+
+    function isLikelyPlaceCandidate(text) {
+      const value = normalizePlaceCandidate(text);
+      if (!value || value.length < 2 || value.length > 30) return false;
+      if (/^(默认假设|当天逻辑|当日逻辑|备选|推荐理由|这里|完全符合|适合作为|如果|全程|步行与短途交通|公共交通|打车结合|轻松舒适|市中心|涪城区)$/u.test(value)) return false;
+      if (/(了解|感受|体验|品尝|欣赏|探访|结束|规划|安排|建议|逻辑|替换|预约|交通|时间|喜欢|适合|可选)/u.test(value)) return false;
+      if (/^(咖啡馆|清吧|美食片区|夜景|公园|景点|商圈|路线|行程|周边餐饮|周边美食|本地中餐|特色汤锅|江边茶座|清吧小坐)$/u.test(value)) return false;
+      if (/[0-9]{2,}\s*(公里|分钟|小时)/u.test(value)) return false;
+      return true;
+    }
+
+    function derivePlaceCategoryHint(name, sourceLine) {
+      const text = `${name || ""} ${sourceLine || ""}`;
+      if (/(科技馆|博物馆|美术馆|纪念馆|展览馆|文化馆)/u.test(text)) return "科教文化服务";
+      if (/(餐厅|饭店|火锅|咖啡|小吃|酒吧|茶馆|餐饮)/u.test(text)) return "餐饮服务";
+      if (/(公园|广场|景区|风景区|风景名胜区|山|寺|古镇|楼|塔|步行街|小吃街|创意园|半岛|游客中心|休闲区|老街|古城)/u.test(text)) return "风景名胜";
+      return "";
+    }
+
+    function extractAliasesFromCandidate(text) {
+      const aliases = [];
+      const bracketMatches = Array.from(String(text || "").matchAll(/[（(]([^()（）]+)[)）]/gu));
+      for (const match of bracketMatches) {
+        const inner = normalizePlaceCandidate(match[1]);
+        if (!inner || /[、，,/]/u.test(inner)) continue;
+        if (isLikelyPlaceCandidate(inner)) aliases.push(inner);
+      }
+      const simplified = normalizePlaceCandidate(String(text || "").replace(/[（(][^()（）]+[)）]/gu, ""));
+      if (simplified.endsWith("休闲区")) {
+        aliases.push(simplified.replace(/休闲区$/u, ""));
+      }
+      if (simplified.endsWith("游客中心")) {
+        aliases.push(simplified.replace(/游客中心$/u, ""));
+      }
+      return Array.from(new Set(aliases.filter(Boolean)));
+    }
+
+    function extractRegexPlaceCandidates(replyText) {
+      const matches = String(replyText || "").match(/[\u4e00-\u9fa5A-Za-z0-9]{2,24}(?:博物馆|科技馆|纪念馆|美术馆|文化馆|游客中心|风景名胜区|风景区|景区|小吃街|步行街|创意园|休闲区|古镇|古城|公园|广场|半岛|老街|夜市|寺|楼|塔|山|街|巷)/gu) || [];
+      return matches
+        .map((item) => ({
+          query: normalizePlaceCandidate(item),
+          aliases: [],
+          categoryHint: derivePlaceCategoryHint(item, item),
+          sourceLine: item
+        }))
+        .filter((item) => isLikelyPlaceCandidate(item.query));
+    }
+
+    function extractPlaceCandidatesFromReply(replyText) {
+      const text = String(replyText || "");
+      if (!text) return [];
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const itineraryLines = lines.filter(
+        (line) =>
+          /^(上午|中午|下午|傍晚|晚上|夜里|夜间|早上|午后|清晨|凌晨)[：:]/u.test(line) ||
+          /^[\-*•]\s*\S+/u.test(line)
+      );
+      const sourceLines = (itineraryLines.length ? itineraryLines : lines).filter(
+        (line) => !/^(第[0-9一二三四五六七八九十]+天[：:]?|默认假设[：:]|当天逻辑[：:]|提示[：:])/u.test(line)
+      );
+      const candidates = [];
+      const seen = new Set();
+      const pushCandidate = (query, aliases, sourceLine) => {
+        const normalized = normalizePlaceCandidate(query);
+        if (!isLikelyPlaceCandidate(normalized)) return;
+        const categoryHint = derivePlaceCategoryHint(normalized, sourceLine);
+        const uniqueAliases = Array.from(
+          new Set(
+            (aliases || [])
+              .map((item) => normalizePlaceCandidate(item))
+              .filter((item) => item && item !== normalized && isLikelyPlaceCandidate(item))
+          )
+        );
+        const dedupeKey = [normalized, ...uniqueAliases].join("|");
+        if (seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+        candidates.push({
+          query: normalized,
+          aliases: uniqueAliases,
+          categoryHint,
+          intentType: "explicit_poi",
+          selectionMode: "auto_resolve",
+          selectedPlaces: [],
+          sourceLine
+        });
+      };
+
+      for (const line of sourceLines) {
+        const mainPart = line.split(/\s*(?:——|--|-{2,})\s*/u)[0].trim();
+        const contentRaw = mainPart.includes("：") ? mainPart.split("：").slice(1).join("：") : mainPart;
+        const rawChunks = contentRaw
+          .split(/\s*(?:\/|／|、|，|和|以及|与|或)\s*/u)
+          .map((chunk) => chunk.trim())
+          .filter(Boolean);
+        for (const rawChunk of rawChunks) {
+          if (/(周边餐饮|周边美食|附近餐饮|附近美食)/u.test(rawChunk)) continue;
+          const chunk = normalizePlaceCandidate(rawChunk);
+          if (!chunk) continue;
+          pushCandidate(chunk, extractAliasesFromCandidate(chunk), line);
+        }
+      }
+
+      if (!candidates.length) {
+        for (const item of extractRegexPlaceCandidates(text)) {
+          pushCandidate(item.query, item.aliases, item.sourceLine);
+        }
+      }
+
+      return candidates.slice(0, 12);
+    }
+
+    function extractAlternativeOptions(replyText) {
+      const text = String(replyText || "");
+      if (!text) return [];
+      const match = text.match(/(?:^|\n)备选[：:]\s*([\s\S]*)$/u);
+      if (!match) return [];
+      const rawSection = String(match[1] || "").trim();
+      if (!rawSection) return [];
+      const lines = rawSection
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[\-\*\d.、\s]+/u, "").trim())
+        .filter(Boolean);
+      const items = [];
+      const seen = new Set();
+      for (const line of lines) {
+        const inlineCandidates = extractPlaceCandidatesFromReply(line);
+        const regexCandidates = inlineCandidates.length ? inlineCandidates : extractRegexPlaceCandidates(line);
+        const query = String(
+          regexCandidates[0]?.query || normalizePlaceCandidate(line.split(/[：:，。,；;（(]/u)[0] || "")
+        ).trim();
+        if (!isLikelyPlaceCandidate(query) || seen.has(query)) continue;
+        seen.add(query);
+        items.push({
+          query,
+          title: query,
+          reason: line
+        });
+      }
+      return items.slice(0, 6);
+    }
+
+    function getFallbackDaySlot(dayIndex) {
+      const days = Array.isArray(state.mapItineraryDays) ? state.mapItineraryDays : [];
+      const day = days.find((item) => Number(item?.day_index) === Number(dayIndex));
+      const slots = Array.isArray(day?.items) ? day.items.map((item) => String(item?.slot || "").trim()).filter(Boolean) : [];
+      if (slots.length) return slots[slots.length - 1];
+      return "晚上";
+    }
+
+    function cloneJsonLike(value) {
+      if (value == null) return value;
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function buildAnchorCacheKey(location) {
+      const parsed = parseLocation(location);
+      if (!parsed) return "";
+      return `${parsed.lng.toFixed(4)},${parsed.lat.toFixed(4)}`;
+    }
+
+    function buildResolveCacheKey(candidate, options = {}) {
+      const keywords = buildResolveKeywordVariants(candidate).join("|");
+      const city = sanitizePlanningCity(options?.cityOverride || "") || getActivePlanningCity();
+      const radius = Number.isFinite(Number(options?.radiusMeters)) ? Number(options.radiusMeters) : 5000;
+      const anchor = buildAnchorCacheKey(options?.anchorLocation);
+      return [
+        city,
+        keywords,
+        String(candidate?.categoryHint || "").trim(),
+        anchor,
+        radius
+      ].join("::");
+    }
+
+    function buildPlaceCandidatesCacheKey(payload) {
+      return [
+        sanitizePlanningCity(payload?.city || ""),
+        String(payload?.query || "").trim(),
+        String(payload?.intent_type || "").trim(),
+        String(payload?.category_hint || "").trim(),
+        buildAnchorCacheKey(payload?.anchor_location),
+        Number.isFinite(Number(payload?.radius_meters)) ? Number(payload.radius_meters) : "",
+        Number.isFinite(Number(payload?.limit)) ? Number(payload.limit) : ""
+      ].join("::");
+    }
+
+    function normalizeResolvedPoiLike(poi, fallbackQuery = "", fallbackReason = "") {
+      const location = parseLocation(poi?.location);
+      if (!location) return null;
+      return {
+        poi_id: String(poi?.poi_id || "").trim(),
+        name: String(poi?.name || fallbackQuery || "").trim(),
+        address: String(poi?.address || "").trim(),
+        category: String(poi?.category || "").trim(),
+        location,
+        resolve_note: String(poi?.resolve_note || fallbackReason || "").trim(),
+        anchor_keyword: String(poi?.anchor_keyword || "").trim(),
+        source_query: String(poi?.source_query || fallbackQuery || poi?.name || "").trim()
+      };
+    }
+
+    function extractStructuredAlternativeOptions(itinerary = state.latestItinerary) {
+      const items = [];
+      const seen = new Set();
+      const pushOption = (option) => {
+        const query = String(option?.query || option?.title || "").trim();
+        if (!query) return;
+        const resolvedPoi = normalizeResolvedPoiLike(option?.resolvedPoi, query, option?.reason || "");
+        const dedupeKey = [
+          String(resolvedPoi?.poi_id || "").trim(),
+          normalizeMapMatchText(query),
+          normalizeMapMatchText(resolvedPoi?.name || option?.title || "")
+        ].join("|");
+        if (seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+        items.push({
+          query,
+          title: String(option?.title || resolvedPoi?.name || query).trim(),
+          reason: String(option?.reason || "").trim(),
+          resolvedPoi,
+          anchor_keyword: String(option?.anchor_keyword || resolvedPoi?.anchor_keyword || "").trim(),
+          resolve_note: String(option?.resolve_note || resolvedPoi?.resolve_note || "").trim()
+        });
+      };
+
+      const candidateBackups = Array.isArray(itinerary?.candidate_backups) ? itinerary.candidate_backups : [];
+      for (const backup of candidateBackups) {
+        const backupQuery = String(backup?.query || backup?.poi?.name || "").trim();
+        const backupReason = String(backup?.reason || "可作为备选地点").trim();
+        const backupPoi = normalizeResolvedPoiLike(backup?.poi, backupQuery, backupReason);
+        if (backupPoi) {
+          pushOption({
+            query: backupQuery || backupPoi.name,
+            title: backupPoi.name || backupQuery,
+            reason: backupReason,
+            resolvedPoi: backupPoi,
+            anchor_keyword: backupPoi.anchor_keyword,
+            resolve_note: backupPoi.resolve_note
+          });
+        }
+        const alternatives = Array.isArray(backup?.alternatives) ? backup.alternatives : [];
+        for (const alt of alternatives.slice(0, 3)) {
+          const altPoi = normalizeResolvedPoiLike(alt, backupQuery, backupReason);
+          if (!altPoi) continue;
+          pushOption({
+            query: backupQuery || altPoi.name,
+            title: altPoi.name || backupQuery,
+            reason: backupReason,
+            resolvedPoi: altPoi,
+            anchor_keyword: altPoi.anchor_keyword,
+            resolve_note: altPoi.resolve_note
+          });
+        }
+      }
+
+      const recallCandidates = Array.isArray(itinerary?.candidate_recall_result?.candidates)
+        ? itinerary.candidate_recall_result.candidates
+        : [];
+      for (const candidate of recallCandidates) {
+        const query = String(candidate?.candidate_name || "").trim();
+        if (!query) continue;
+        pushOption({
+          query,
+          title: query,
+          reason: String(candidate?.reason || "本轮召回候选").trim()
+        });
+      }
+
+      const backupCandidates = Array.isArray(itinerary?.candidate_recall_result?.backup_candidates)
+        ? itinerary.candidate_recall_result.backup_candidates
+        : [];
+      for (const backupText of backupCandidates) {
+        const query = String(backupText || "").trim();
+        if (!query) continue;
+        pushOption({
+          query,
+          title: query,
+          reason: "更多可考虑的备选地点"
+        });
+      }
+
+      return items;
+    }
+
+    async function hydrateAlternativeOptions(replyText, itinerary = state.latestItinerary) {
+      const rawOptions = [
+        ...extractStructuredAlternativeOptions(itinerary),
+        ...extractAlternativeOptions(replyText)
+      ];
+      if (!rawOptions.length) return [];
+      const hydrated = [];
+      const seen = new Set();
+      const cityOverride = getActivePlanningCity();
+      const anchorLocation = getPreferredAlternativeAnchorLocation();
+      let unresolvedResolveBudget = 4;
+      for (const option of rawOptions) {
+        if (option?.resolvedPoi?.location) {
+          const duplicate = isPlaceDuplicateInItinerary({ ...option, resolvedPoi: option.resolvedPoi }, itinerary);
+          if (duplicate) continue;
+          const resolvedDedupeKey = [
+            String(option?.resolvedPoi?.poi_id || "").trim(),
+            normalizeMapMatchText(option?.query || ""),
+            normalizeMapMatchText(option?.resolvedPoi?.name || option?.title || "")
+          ].join("|");
+          if (seen.has(resolvedDedupeKey)) continue;
+          seen.add(resolvedDedupeKey);
+          hydrated.push({
+            ...option,
+            resolvedPoi: option.resolvedPoi,
+            anchor_keyword: option.anchor_keyword || option.resolvedPoi.anchor_keyword || "",
+            resolve_note: option.resolve_note || option.resolvedPoi.resolve_note || ""
+          });
+          continue;
+        }
+        if (unresolvedResolveBudget <= 0) continue;
+        const candidate = {
+          query: option.query,
+          aliases: [],
+          categoryHint: derivePlaceCategoryHint(option.query, option.reason || option.query),
+          intentType: "direct_poi"
+        };
+        try {
+          const poi = await resolvePlaceCandidate(candidate, {
+            cityOverride,
+            anchorLocation,
+            radiusMeters: anchorLocation ? 12000 : 5000
+          });
+          if (!poi?.location) continue;
+          const duplicate = isPlaceDuplicateInItinerary({ ...option, resolvedPoi: poi }, itinerary);
+          if (duplicate) continue;
+          const dedupeKey = [
+            String(poi?.poi_id || "").trim(),
+            normalizeMapMatchText(option.query || ""),
+            normalizeMapMatchText(poi?.name || "")
+          ].join("|");
+          if (seen.has(dedupeKey)) continue;
+          seen.add(dedupeKey);
+          hydrated.push({
+            ...option,
+            resolvedPoi: poi,
+            anchor_keyword: poi.anchor_keyword || "",
+            resolve_note: poi.resolve_note || ""
+          });
+          unresolvedResolveBudget -= 1;
+        } catch (error) {
+          console.warn("hydrateAlternativeOptions failed", option?.query, error);
+        }
+      }
+      return hydrated.slice(0, 10);
+    }
+
+    async function addResolvedPlaceToDay(place, dayIndex, sourceQuery = "", options = {}) {
+      if (!state.sessionId || !dayIndex || !place?.location) return false;
+      const query = String(sourceQuery || place.name || "地点").trim();
+      const targetSlot = getFallbackDaySlot(dayIndex);
+      const shouldSyncConversation = options.syncConversation !== false;
+      const shouldLoadHistory = options.loadHistory !== false;
+      const quiet = options.quiet === true;
+      try {
+        if (isPlaceDuplicateInItinerary({ resolvedPoi: place, query }, state.latestItinerary)) {
+          if (!quiet) {
+            setStatus(`${query} 已在当前行程中，无需重复加入。`);
+            showToast(`${query} 已在当前行程中`, "success");
+          }
+          return false;
+        }
+        if (!quiet) {
+          setStatus(`正在把 ${query} 加入第${dayIndex}天...`);
+        }
+        const result = await api("/api/planner/itinerary/place-select", {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: state.sessionId,
+            day_index: dayIndex,
+            slot: targetSlot,
+            query,
+            direct_add: true,
+            place: {
+              poi_id: place.poi_id,
+              name: place.name,
+              address: place.address,
+              category: place.category,
+              location: place.location,
+              resolve_note: place.resolve_note || "",
+              anchor_keyword: place.anchor_keyword || ""
+            }
+          })
+        });
+        state.latestItinerary = result.itinerary || null;
+        if (shouldSyncConversation) {
+          await syncMapFromConversation("", state.latestAssistantReply, state.latestItinerary, {
+            incrementalPlace: place,
+            dayIndex,
+            slot: targetSlot,
+            sourceQuery: query,
+            skipAlternativeHydration: true
+          });
+        }
+        if (shouldLoadHistory) {
+          await loadSessionHistory();
+        }
+        if (!quiet) {
+          setStatus(`已把 ${query} 加入第${dayIndex}天。`);
+          showToast(`${query} 已加入第${dayIndex}天`, "success");
+        }
+        return true;
+      } catch (error) {
+        console.error(error);
+        if (applyResolvedPlaceToLocalItinerary(place, dayIndex, targetSlot, query)) {
+          if (shouldSyncConversation) {
+            await syncMapFromConversation("", state.latestAssistantReply, state.latestItinerary, {
+              incrementalPlace: place,
+              dayIndex,
+              slot: targetSlot,
+              sourceQuery: query,
+              skipAlternativeHydration: true
+            });
+          }
+          if (!quiet) {
+            setStatus(`已先把 ${query} 加入当前页面行程。`);
+            showToast(`${query} 已加入第${dayIndex}天`, "success");
+          }
+          return true;
+        }
+        if (!quiet) {
+          setStatus(`加入地点失败：${error?.message || error}`);
+          showToast(`加入失败：${query}`, "error");
+        }
+        return false;
+      }
+    }
+
+    function buildResolveKeywordVariants(candidate) {
+      const baseKeywords = [candidate?.query, ...(Array.isArray(candidate?.aliases) ? candidate.aliases : [])]
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+      const variants = [];
+      const pushVariant = (value) => {
+        const text = String(value || "").trim();
+        if (!text) return;
+        if (!variants.includes(text)) variants.push(text);
+      };
+      const simplifyKeyword = (value) => {
+        let text = String(value || "").trim();
+        if (!text) return "";
+        text = text.replace(/[（(][^()（）]+[)）]/gu, "").trim();
+        text = text.replace(/(?:周边|附近|一带|片区|商圈|区域|景区)$/u, "").trim();
+        text = text.replace(/(?:早餐|早午餐|午餐|晚餐|夜宵|美食|餐饮|小吃|咖啡|茶馆|酒吧|清吧|火锅|川菜|甜品)$/u, "").trim();
+        text = text.replace(/(?:周边|附近|一带|片区|商圈|区域)$/u, "").trim();
+        return text;
+      };
+      for (const keyword of baseKeywords) {
+        pushVariant(keyword);
+        const simplified = simplifyKeyword(keyword);
+        if (simplified && simplified !== keyword) pushVariant(simplified);
+        if (/[+/／、，和与或]/u.test(keyword)) {
+          keyword
+            .split(/\s*(?:\+|\/|／|、|，|和|与|或)\s*/u)
+            .map((item) => simplifyKeyword(item))
+            .filter(Boolean)
+            .forEach(pushVariant);
+        }
+      }
+      return variants;
+    }
+
+    async function addAlternativeToDay(option, dayIndex) {
+      if (!state.sessionId || !option?.query || !dayIndex) return;
+      const previousAlternatives = Array.isArray(state.alternativeOptions) ? state.alternativeOptions.slice() : [];
+      const editMessage = `把${option.query}加入当前行程第${dayIndex}天，保持原来的城市不变`;
+      const dayResolvedPlaces = collectSelectedPlacesFromItinerary(state.latestItinerary)
+        .filter((item) => Number(item?.day_index) === Number(dayIndex));
+      const dayAnchorLocation = dayResolvedPlaces.length
+        ? parseLocation(dayResolvedPlaces[dayResolvedPlaces.length - 1]?.location)
+        : getPreferredAlternativeAnchorLocation();
+      const candidate = {
+        query: option.query,
+        aliases: option.anchor_keyword ? [option.anchor_keyword] : [],
+        categoryHint: derivePlaceCategoryHint(option.query, option.reason || option.query),
+        intentType: "direct_poi"
+      };
+      const targetSlot = getFallbackDaySlot(dayIndex);
+      try {
+        setStatus(`正在把 ${option.query} 加入第${dayIndex}天...`);
+        const resolvedPoi = await resolvePlaceCandidate(candidate, {
+          cityOverride: getActivePlanningCity(),
+          anchorLocation: dayAnchorLocation,
+          radiusMeters: dayAnchorLocation ? 12000 : 5000
+        }) || option.resolvedPoi || null;
+        if (!resolvedPoi?.location) {
+          throw new Error("该备选地点尚未解析出坐标");
+        }
+        if (isPlaceDuplicateInItinerary({ ...option, resolvedPoi }, state.latestItinerary)) {
+          state.alternativeOptions = previousAlternatives
+            .filter((item) => normalizeMapMatchText(item?.query || "") !== normalizeMapMatchText(option.query || ""));
+          renderAlternativePanel();
+          setStatus(`${option.query} 已在当前行程中，无需重复加入。`);
+          showToast(`${option.query} 已在当前行程中`, "success");
+          return;
+        }
+        const result = await api("/api/planner/itinerary/place-select", {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: state.sessionId,
+            day_index: dayIndex,
+            slot: targetSlot,
+            query: option.query,
+            direct_add: true,
+            place: {
+              poi_id: resolvedPoi.poi_id,
+              name: resolvedPoi.name,
+              address: resolvedPoi.address,
+              category: resolvedPoi.category,
+              location: resolvedPoi.location,
+              resolve_note: option.resolve_note || resolvedPoi.resolve_note || "",
+              anchor_keyword: option.anchor_keyword || resolvedPoi.anchor_keyword || ""
+            }
+          })
+        });
+        state.latestItinerary = result.itinerary || null;
+        removeSessionLocalAddition(state.sessionId, option.query);
+        await syncMapFromConversation(
+          editMessage,
+          state.latestAssistantReply,
+          state.latestItinerary,
+          {
+            incrementalPlace: resolvedPoi,
+            dayIndex,
+            slot: targetSlot,
+            sourceQuery: option.query,
+            removeAlternativeQuery: option.query,
+            skipAlternativeHydration: true
+          }
+        );
+        state.alternativeOptions = (Array.isArray(state.alternativeOptions) ? state.alternativeOptions : previousAlternatives)
+          .filter((item) => normalizeMapMatchText(item?.query || "") !== normalizeMapMatchText(option.query || ""));
+        renderAlternativePanel();
+        await loadSessionHistory();
+        setStatus(`已把 ${option.query} 加入第${dayIndex}天，并重算当前路径。`);
+        showToast(`${option.query} 已加入第${dayIndex}天`, "success");
+      } catch (error) {
+        console.error(error);
+        if (applyAlternativeToLocalItinerary(option, dayIndex, targetSlot)) {
+          await syncMapFromConversation(
+            editMessage,
+            state.latestAssistantReply,
+            state.latestItinerary,
+            {
+              incrementalPlace: option.resolvedPoi,
+              dayIndex,
+              slot: targetSlot,
+              sourceQuery: option.query,
+              removeAlternativeQuery: option.query,
+              skipAlternativeHydration: true
+            }
+          );
+          state.alternativeOptions = (Array.isArray(state.alternativeOptions) ? state.alternativeOptions : previousAlternatives)
+            .filter((item) => normalizeMapMatchText(item?.query || "") !== normalizeMapMatchText(option.query || ""));
+          renderAlternativePanel();
+          setStatus(`已先把 ${option.query} 加入当前页面行程，并重算当前路径。`);
+          showToast(`${option.query} 已加入第${dayIndex}天`, "success");
+          return;
+        }
+        setStatus(`加入备选地点失败：${error?.message || error}`);
+        showToast(`加入失败：${option.query}`, "error");
+      }
+    }
+
+    function renderAlternativePanel() {
+      if (!alternativePanelEl || !alternativeListEl) return;
+      const alternatives = Array.isArray(state.alternativeOptions) ? state.alternativeOptions : [];
+      if (!alternatives.length) {
+        alternativePanelEl.hidden = true;
+        alternativeListEl.innerHTML = "";
+        return;
+      }
+      alternativePanelEl.hidden = false;
+      alternativeListEl.innerHTML = alternatives.map((item, index) => {
+        const resolvedMeta = item?.resolvedPoi?.name
+          ? `可落点：${item.resolvedPoi.name}${item.resolvedPoi.address ? ` · ${item.resolvedPoi.address}` : ""}`
+          : "";
+        const noteText = item?.resolve_note ? item.resolve_note : "";
+        return `
+          <article class="alt-item">
+            <h3>${escapeHtml(item.title || item.query || `备选地点 ${index + 1}`)}</h3>
+            <p>${escapeHtml(item.reason || item.query || "")}</p>
+            ${resolvedMeta || noteText ? `<p>${escapeHtml([resolvedMeta, noteText].filter(Boolean).join(" · "))}</p>` : ""}
+            <div class="alt-actions">
+              <button type="button" data-alt-search="${index}">搜索这个地点</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+      alternativeListEl.querySelectorAll("[data-alt-search]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const option = alternatives[Number(button.dataset.altSearch)];
+          if (!option) return;
+          const keyword = String(option.query || option.resolvedPoi?.name || "").trim();
+          if (!keyword || !mapSearchInputEl) return;
+          mapSearchInputEl.value = keyword;
+          await runMapSearch();
+        });
+      });
+    }
+
+    function extractDestinationHintFromText(text) {
+      const source = String(text || "").trim();
+      if (!source) return "";
+      const patterns = [
+        /(?:我想|想|准备|打算|计划)?(?:在|去|到|前往|奔向|计划去)\s*([\u4e00-\u9fffA-Za-z0-9·]{2,12}?)(?:玩|旅游|旅行|逛|耍|住|待|过|打卡|游|转)/u,
+        /([\u4e00-\u9fffA-Za-z0-9·]{2,12}?)(?:两|三|四|五|六|七|八|九|十)?(?:天|日)(?:行程|游|玩|旅游)?/u
+      ];
+      for (const pattern of patterns) {
+        const match = source.match(pattern);
+        if (!match) continue;
+        const city = String(match[1] || "").trim();
+        if (city && !/^(一|二|两|三|四|五|六|七|八|九|十|\d+)$/u.test(city)) {
+          return city;
+        }
+      }
+      return "";
+    }
+
+    function sanitizePlanningCity(value) {
+      const original = String(value || "").trim();
+      if (!original) return "";
+      if (/^第?[0-9一二两三四五六七八九十]+(?:天|日)?$/u.test(original)) return "";
+      let text = original.replace(/[，。,.!?！？、/\\\s]+$/u, "");
+      text = text.replace(/(?:city\s*walk|citywalk)$/iu, "").trim();
+      text = text.replace(/(?:[0-9一二两三四五六七八九十]+(?:天|日)(?:行程|游|玩|旅游)?)$/u, "").trim();
+      text = text.replace(/(?:旅游|旅行|游玩|行程|攻略|打卡|玩|逛|耍|住|待|过|游|转)$/u, "").trim();
+      if (/^第?[0-9一二两三四五六七八九十]+(?:天|日)?$/u.test(text)) return "";
+      return text.length >= 2 ? text : original;
+    }
+
+    function getRecentPlanningCityFromMessages() {
+      const messages = Array.isArray(state.messages) ? state.messages : [];
+      for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message?.role !== "user") continue;
+        const city = sanitizePlanningCity(extractDestinationHintFromText(message.content || ""));
+        if (city) return city;
+      }
+      return "";
+    }
+
+    function getLatestUserMessageText() {
+      const messages = Array.isArray(state.messages) ? state.messages : [];
+      for (let i = messages.length - 1; i >= 0; i -= 1) {
+        const message = messages[i];
+        if (message?.role === "user" && String(message.content || "").trim()) {
+          return String(message.content || "").trim();
+        }
+      }
+      return "";
+    }
+
+    function getActivePlanningCity(preferredMessage = "") {
+      const explicitFromMessage = sanitizePlanningCity(extractDestinationHintFromText(preferredMessage));
+      if (explicitFromMessage) return explicitFromMessage;
+      const itineraryCity = sanitizePlanningCity(state.latestItinerary?.city);
+      if (itineraryCity) return itineraryCity;
+      const latestUserCity = getRecentPlanningCityFromMessages();
+      if (latestUserCity) return latestUserCity;
+      const configuredCity = sanitizePlanningCity(state.mapConfig?.defaultCity);
+      return configuredCity || "绵阳";
+    }
+
+    function scoreResolvedPoi(poi, candidate, matchedKeyword) {
+      const name = String(poi?.name || "");
+      const category = String(poi?.category || "");
+      let score = Number(poi?.confidence || 0);
+      if (name === candidate.query || name === matchedKeyword) score += 1.2;
+      if (name.includes(candidate.query) || candidate.query.includes(name)) score += 0.6;
+      if (matchedKeyword && (name.includes(matchedKeyword) || matchedKeyword.includes(name))) score += 0.4;
+      if (Array.isArray(candidate.aliases) && candidate.aliases.some((alias) => alias && (name.includes(alias) || alias.includes(name)))) score += 0.35;
+      if (candidate.categoryHint && category.includes(candidate.categoryHint)) score += 0.7;
+      if (candidate.categoryHint === "科教文化服务" && !category.includes("科教文化服务")) score -= 0.8;
+      if (candidate.categoryHint === "风景名胜" && category.includes("餐饮服务")) score -= 1;
+      if (candidate.categoryHint === "餐饮服务" && !category.includes("餐饮服务")) score -= 0.4;
+      if (/周边|附近/u.test(name)) score -= 0.3;
+      return score;
+    }
+
+    function isResolvedPoiAcceptable(poi, candidate, matchedKeyword, score) {
+      const normalizedName = normalizeMapMatchText(poi?.name || "");
+      const normalizedQuery = normalizeMapMatchText(candidate?.query || "");
+      const normalizedMatchedKeyword = normalizeMapMatchText(matchedKeyword || "");
+      const aliasKeys = Array.isArray(candidate?.aliases)
+        ? candidate.aliases.map((item) => normalizeMapMatchText(item)).filter(Boolean)
+        : [];
+      const poiKeys = getPlaceIdentityKeys(poi);
+      const queryKeys = Array.from(new Set([normalizedQuery, normalizedMatchedKeyword, ...aliasKeys].filter(Boolean)));
+      const hasKeywordOverlap = queryKeys.some((queryKey) => {
+        return poiKeys.some((poiKey) => poiKey === queryKey || poiKey.includes(queryKey) || queryKey.includes(poiKey));
+      });
+      if (!hasKeywordOverlap) return false;
+      if (normalizedQuery && normalizedName && (normalizedQuery === normalizedName || normalizedName.includes(normalizedQuery) || normalizedQuery.includes(normalizedName))) {
+        return true;
+      }
+      if (normalizedMatchedKeyword && normalizedName && (normalizedMatchedKeyword === normalizedName || normalizedName.includes(normalizedMatchedKeyword) || normalizedMatchedKeyword.includes(normalizedName))) {
+        return score >= 0.72;
+      }
+      return score >= 0.88;
+    }
+
+    function pickResolvedPoi(resolveRes, candidate, matchedKeyword) {
+      const pool = [];
+      if (resolveRes?.poi) pool.push(resolveRes.poi);
+      if (Array.isArray(resolveRes?.alternatives)) pool.push(...resolveRes.alternatives);
+      let bestPoi = null;
+      let bestScore = -Infinity;
+      for (const poi of pool) {
+        if (!poi?.location) continue;
+        const score = scoreResolvedPoi(poi, candidate, matchedKeyword);
+        if (!isResolvedPoiAcceptable(poi, candidate, matchedKeyword, score)) continue;
+        if (score > bestScore) {
+          bestScore = score;
+          bestPoi = {
+            ...poi,
+            _resolveScore: score
+          };
+        }
+      }
+      return bestPoi;
+    }
+
+    async function resolvePlaceCandidate(candidate, options = {}) {
+      const resolveCacheKey = buildResolveCacheKey(candidate, options);
+      if (resolveCacheKey && state.placeResolveCache.has(resolveCacheKey)) {
+        return cloneJsonLike(state.placeResolveCache.get(resolveCacheKey));
+      }
+      const keywords = buildResolveKeywordVariants(candidate);
+      const cityOverride = sanitizePlanningCity(options?.cityOverride || "") || getActivePlanningCity();
+      const anchorLocation = parseLocation(options?.anchorLocation);
+      const radiusMeters = Number.isFinite(Number(options?.radiusMeters)) ? Number(options.radiusMeters) : 5000;
+      let bestPoi = null;
+      let bestScore = -Infinity;
+      for (const keyword of keywords) {
+        const resolveRes = await api("/api/map/poi/resolve", {
+          method: "POST",
+          body: JSON.stringify({
+            city: cityOverride,
+            keyword,
+            category_hint: candidate.categoryHint || null,
+            anchor_location: anchorLocation,
+            radius_meters: radiusMeters,
+            limit: 6
+          })
+        });
+        const poi = pickResolvedPoi(resolveRes, candidate, keyword);
+        if (!poi?.location) continue;
+        const score = Number(poi._resolveScore || 0);
+        if (score > bestScore) {
+          bestScore = score;
+          bestPoi = {
+            ...poi,
+            source_query: candidate.query,
+            matched_keyword: keyword,
+            category_hint: candidate.categoryHint || ""
+          };
+        }
+      }
+      if (bestPoi?.location) {
+        const sourceQuery = String(candidate?.query || "").trim();
+        const matchedKeyword = String(bestPoi.matched_keyword || "").trim();
+        if (sourceQuery && matchedKeyword && normalizeMapMatchText(sourceQuery) !== normalizeMapMatchText(matchedKeyword)) {
+          bestPoi = {
+            ...bestPoi,
+            anchor_keyword: matchedKeyword,
+            resolve_note: `按“${matchedKeyword}”附近落点，原需求：${sourceQuery}`
+          };
+        }
+      }
+      if (resolveCacheKey) {
+        state.placeResolveCache.set(resolveCacheKey, cloneJsonLike(bestPoi));
+      }
+      return bestPoi;
+    }
+
+    function getDayAnchorLocation(groupedByDay, dayIndex) {
+      const dayKey = String(dayIndex || 0);
+      const dayPlaces = groupedByDay.get(dayKey) || [];
+      const lastPlace = dayPlaces[dayPlaces.length - 1];
+      const firstPlace = dayPlaces[0];
+      return (
+        parseLocation(lastPlace?.location) ||
+        parseLocation(firstPlace?.location) ||
+        null
+      );
+    }
+
+    function buildPendingCandidateEntries(candidate, response) {
+      const rows = Array.isArray(response?.candidates) ? response.candidates : [];
+      return rows.map((item, index) => ({
+        ...item,
+        list_index: index,
+        source_query: candidate.query,
+        category_hint: candidate.categoryHint || "",
+        day_index: candidate.day_index,
+        day_title: candidate.day_title,
+        slot: candidate.slot,
+        slot_text: candidate.slot_text,
+        intent_type: "generic_poi",
+        pending_key: [
+          candidate.day_index || 0,
+          candidate.slot || "",
+          candidate.query || "",
+          item.poi_id || item.name || index
+        ].join("|")
+      }));
+    }
+
+    async function syncMapFromConversation(message, assistantReply, itinerary, options = {}) {
+      try {
+        state.latestAssistantReply = String(assistantReply || state.latestAssistantReply || "");
+        const baseItinerary = itinerary || state.latestItinerary || null;
+        state.latestItinerary = mergeSessionLocalAdditionsIntoItinerary(baseItinerary, state.sessionId) || null;
+        renderPlannerDiagnostics();
+        const itineraryCity = sanitizePlanningCity(state.latestItinerary?.city);
+        const activeCity = getActivePlanningCity(message);
+        if (state.mapConfig) {
+          state.mapConfig.defaultCity = itineraryCity || activeCity || sanitizePlanningCity(state.mapConfig.defaultCity) || "绵阳";
+        }
+        if (options?.incrementalPlace) {
+          const applied = await applyIncrementalMapPlaceUpdate(options.incrementalPlace, {
+            itinerary: state.latestItinerary,
+            dayIndex: options.dayIndex,
+            dayTitle: options.dayTitle,
+            slot: options.slot,
+            slotText: options.slotText,
+            sourceQuery: options.sourceQuery,
+            categoryHint: options.categoryHint,
+            removeAlternativeQuery: options.removeAlternativeQuery
+          });
+          if (applied) {
+            if (mapStatusEl) {
+              mapStatusEl.textContent = `已增量同步第${Number(options.dayIndex || options.incrementalPlace?.day_index || 0)}天新增地点。`;
+            }
+            return;
+          }
+        }
+        const resolvedPlaces = [];
+        const previewItems = [];
+        const pendingCandidates = [];
+        let autoAddedGenericPoi = false;
+        const autoAddedGenericPlaces = [];
+        const seen = new Set();
+        const previewSeen = new Set();
+        const groupedByDay = new Map();
+        const itineraryDays = Array.isArray(state.latestItinerary?.days) ? state.latestItinerary.days : [];
+        const alternativeOptionsCacheKey = [
+          normalizeMapMatchText(state.latestAssistantReply || ""),
+          buildItinerarySelectionSignature(state.latestItinerary)
+        ].join("::");
+        if (!options?.skipAlternativeHydration && state.alternativeOptionsCacheKey !== alternativeOptionsCacheKey) {
+          state.alternativeOptions = await hydrateAlternativeOptions(state.latestAssistantReply, state.latestItinerary);
+          state.alternativeOptionsCacheKey = alternativeOptionsCacheKey;
+        }
+        renderAlternativePanel();
+        const structuredCandidates = extractPlaceCandidatesFromItinerary(
+          state.latestItinerary,
+          state.latestAssistantReply,
+          { includeReplyFallback: true }
+        );
+        const replyPreviewCandidates = extractPlaceCandidatesFromReply(state.latestAssistantReply);
+        const useStructuredCandidates = structuredCandidates.length > 0;
+        const placeCandidates = useStructuredCandidates
+          ? structuredCandidates
+          : extractPlaceCandidatesFromReply(state.latestAssistantReply);
+        for (const candidate of replyPreviewCandidates) {
+          const previewName = String(candidate?.query || "").trim();
+          if (!previewName) continue;
+          const previewKey = [candidate.day_index || 0, candidate.slot || "", previewName].join("|");
+          if (previewSeen.has(previewKey)) continue;
+          previewSeen.add(previewKey);
+          previewItems.push({
+            name: previewName,
+            address: candidate.slot_text || candidate.sourceLine || "",
+            category: candidate.categoryHint || "",
+            day_index: candidate.day_index,
+            day_title: candidate.day_title,
+            slot: candidate.slot,
+            sourceLine: candidate.slot_text || candidate.sourceLine || "",
+            source_query: candidate.query,
+            intent_type: candidate.intentType || ""
+          });
+        }
+        state.mapItineraryDays = itineraryDays;
+        state.mapPreviewItems = previewItems.slice(0, 30);
+        if (!Number.isFinite(Number(state.mapSelectedDay))) {
+          state.mapSelectedDay = itineraryDays.length ? Number(itineraryDays[0]?.day_index || 1) : null;
+        }
+        state.mapActiveResultKey = null;
+        if (!placeCandidates.length) {
+          state.mapSearchResults = [];
+          state.mapPreviewItems = [];
+          state.mapPendingCandidates = [];
+          state.mapRouteSegments = [];
+          renderMap();
+          if (mapStatusEl) {
+            mapStatusEl.textContent = "这次回复里没有识别到明确地点，地图暂时不自动落点。";
+          }
+          return;
+        }
+
+        for (const candidate of placeCandidates) {
+          if (Array.isArray(candidate.selectedPlaces) && candidate.selectedPlaces.length) {
+            for (const selectedPlace of candidate.selectedPlaces) {
+              const location = parseLocation(selectedPlace?.location);
+              if (!location) continue;
+              const key = `${candidate.day_index || 0}_${selectedPlace.poi_id || ""}_${selectedPlace.name || candidate.query}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+              const enrichedSelected = {
+                ...selectedPlace,
+                location,
+                day_index: candidate.day_index,
+                day_title: candidate.day_title,
+                slot: candidate.slot,
+                slot_text: candidate.slot_text,
+                source_query: candidate.query,
+                category_hint: candidate.categoryHint || ""
+              };
+              resolvedPlaces.push(enrichedSelected);
+              const dayKey = String(candidate.day_index || 0);
+              if (!groupedByDay.has(dayKey)) groupedByDay.set(dayKey, []);
+              groupedByDay.get(dayKey).push(enrichedSelected);
+            }
+            continue;
+          }
+
+          if (candidate.intentType === "generic_poi") {
+            continue;
+          }
+
+          let poi = null;
+          try {
+            poi = await resolvePlaceCandidate(candidate, {
+              cityOverride: getActivePlanningCity(message),
+              anchorLocation: getDayAnchorLocation(groupedByDay, candidate.day_index),
+              radiusMeters: getDayAnchorLocation(groupedByDay, candidate.day_index) ? 12000 : 5000
+            });
+          } catch (resolveError) {
+            console.warn("resolvePlaceCandidate failed", resolveError);
+          }
+          if (!poi?.location) continue;
+          const key = `${candidate.day_index || 0}_${poi.poi_id || ""}_${poi.name || candidate.query}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const enrichedPoi = {
+            ...poi,
+            day_index: candidate.day_index,
+            day_title: candidate.day_title,
+            slot: candidate.slot,
+            slot_text: candidate.slot_text,
+            source_query: candidate.query,
+            category_hint: candidate.categoryHint || ""
+          };
+          resolvedPlaces.push(enrichedPoi);
+          const dayKey = String(candidate.day_index || 0);
+          if (!groupedByDay.has(dayKey)) groupedByDay.set(dayKey, []);
+          groupedByDay.get(dayKey).push(enrichedPoi);
+        }
+
+        for (const candidate of placeCandidates) {
+          if (candidate.intentType !== "generic_poi") continue;
+          if (Array.isArray(candidate.selectedPlaces) && candidate.selectedPlaces.length) continue;
+          try {
+            const candidateRequest = {
+              session_id: state.sessionId,
+              day_index: candidate.day_index,
+              slot: candidate.slot,
+              query: candidate.query,
+              intent_type: candidate.intentType,
+              city: getActivePlanningCity(message),
+              category_hint: candidate.categoryHint || null,
+              anchor_location: getDayAnchorLocation(groupedByDay, candidate.day_index),
+              limit: 5
+            };
+            const candidateCacheKey = buildPlaceCandidatesCacheKey(candidateRequest);
+            let candidateRes = candidateCacheKey ? cloneJsonLike(state.placeCandidatesCache.get(candidateCacheKey)) : null;
+            if (!candidateRes) {
+              candidateRes = await api("/api/planner/place-candidates", {
+                method: "POST",
+                body: JSON.stringify(candidateRequest)
+              });
+              if (candidateCacheKey) {
+                state.placeCandidatesCache.set(candidateCacheKey, cloneJsonLike(candidateRes));
+              }
+            }
+            const topCandidate = Array.isArray(candidateRes?.candidates) ? candidateRes.candidates[0] : null;
+            const candidateEntries = buildPendingCandidateEntries(candidate, candidateRes)
+              .filter((entry) => {
+                return String(entry?.poi_id || "").trim() !== String(topCandidate?.poi_id || "").trim();
+              });
+            pendingCandidates.push(...candidateEntries);
+            const topLocation = parseLocation(topCandidate?.location);
+            if (!topCandidate || !topLocation) continue;
+            const added = await addResolvedPlaceToDay(
+              {
+                ...topCandidate,
+                location: topLocation,
+              },
+              candidate.day_index,
+              candidate.query,
+              {
+                syncConversation: false,
+                loadHistory: false,
+                quiet: true,
+              }
+            );
+            if (added) {
+              autoAddedGenericPoi = true;
+              autoAddedGenericPlaces.push({
+                place: {
+                  ...topCandidate,
+                  location: topLocation
+                },
+                candidate
+              });
+            }
+          } catch (candidateError) {
+            console.warn("place-candidates failed", candidateError);
+          }
+        }
+
+        if (autoAddedGenericPoi) {
+          state.mapPendingCandidates = pendingCandidates.slice(0, 30);
+          for (const addition of autoAddedGenericPlaces) {
+            await applyIncrementalMapPlaceUpdate(addition.place, {
+              itinerary: state.latestItinerary,
+              dayIndex: addition.candidate?.day_index,
+              dayTitle: addition.candidate?.day_title,
+              slot: addition.candidate?.slot,
+              slotText: addition.candidate?.slot_text,
+              sourceQuery: addition.candidate?.query,
+              categoryHint: addition.candidate?.categoryHint || ""
+            });
+          }
+          await loadSessionHistory();
+          return;
+        }
+
+        const orderedResolvedPlaces = sortPlacesByManualDayOrder(resolvedPlaces, state.latestItinerary);
+        groupedByDay.clear();
+        for (const resolvedItem of orderedResolvedPlaces) {
+          const dayKey = String(resolvedItem?.day_index || 0);
+          if (!groupedByDay.has(dayKey)) groupedByDay.set(dayKey, []);
+          groupedByDay.get(dayKey).push(resolvedItem);
+        }
+
+        state.mapSearchResults = orderedResolvedPlaces.slice(0, 30);
+        state.mapPendingCandidates = pendingCandidates.slice(0, 30);
+        state.mapRouteSegments = [];
+        renderMap();
+        renderAlternativePanel();
+        if (state.mapConfig?.enabled) {
+          const allSegments = [];
+          for (const [, dayPlaces] of groupedByDay.entries()) {
+            const routePoints = dayPlaces
+              .map(normalizeRoutePoint)
+              .filter(Boolean)
+              .slice(0, 10);
+            if (routePoints.length < 2) continue;
+            try {
+              const routeRes = await api("/api/map/route/plan", {
+                method: "POST",
+                body: JSON.stringify({
+                  start: routePoints[0].location,
+                  points: routePoints.slice(1),
+                  mode: "drive"
+                })
+              });
+              const dayIndex = dayPlaces[0]?.day_index || null;
+              const segments = Array.isArray(routeRes.route?.segments)
+                ? routeRes.route.segments.map((segment) => ({
+                    ...segment,
+                    day_index: dayIndex
+                  }))
+                : [];
+              allSegments.push(...segments);
+            } catch (routeError) {
+              console.warn("routePlan failed", routeError);
+            }
+          }
+          state.mapRouteSegments = allSegments;
+          renderMap();
+        }
+      } catch (error) {
+        console.warn("syncMapFromConversation failed", error);
+        if (mapStatusEl) {
+          mapStatusEl.textContent = `对话地图同步失败：${error?.message || error}`;
+        }
+      }
+    }
+
+    function clearMap() {
+      if (!state.map) return;
+      if (Array.isArray(state.mapMarkers)) {
+        for (const marker of state.mapMarkers) {
+          if (marker && typeof marker.setMap === "function") marker.setMap(null);
+        }
+      }
+      if (Array.isArray(state.mapPolylines)) {
+        for (const polyline of state.mapPolylines) {
+          if (polyline && typeof polyline.setMap === "function") polyline.setMap(null);
+        }
+      }
+      state.mapMarkers = [];
+      state.mapPolylines = [];
+    }
+
+    function destroyMap() {
+      clearPendingRouteRefresh();
+      clearMap();
+      if (state.mapBuildingLayer) {
+        state.mapBuildingLayer.destroy?.();
+        state.mapBuildingLayer = null;
+      }
+      if (state.map) {
+        state.map.destroy?.();
+        state.map = null;
+      }
+      if (mapCanvasEl) {
+        mapCanvasEl.innerHTML = "";
+      }
+    }
+
+    function renderMapFallback(message) {
+      if (mapCanvasEl) {
+        mapCanvasEl.innerHTML = `
+          <div class="map-placeholder">
+            <div>
+              <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">Map not loaded</div>
+              <div>${escapeHtml(message)}</div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderMap() {
+      if (!mapStatusEl || !mapCanvasEl) return;
+      renderMapDayTabs();
+      const visibleResults = getVisibleMapResults();
+      const visiblePreviewItems = getVisibleMapPreviewItems();
+      const visibleRouteSegments = getVisibleMapRouteSegments();
+      if (!state.mapConfig?.enabled || !window.AMap) {
+        const fallbackMessage = visiblePreviewItems.length
+          ? "当前无法加载高德地图，但已识别到行程地点，可先在下方查看地点列表。"
+          : getMapUnavailableReason();
+        mapStatusEl.textContent = `${fallbackMessage} (${state.mapSearchResults.length} results)`;
+        destroyMap();
+        renderMapFallback(fallbackMessage);
+        renderMapResults(visibleResults);
+        return;
+      }
+
+      const userLocation = parseLocation(state.userLocation);
+      if (!visibleResults.length && !visibleRouteSegments.length && visiblePreviewItems.length) {
+        mapStatusEl.textContent = `已识别 ${visiblePreviewItems.length} 个行程地点，但当前还没有可定位坐标。`;
+        destroyMap();
+        renderMapFallback("已识别到当前行程地点，但暂时没有可落图的坐标。你可以先查看下方地点列表，或手动搜索更精确的地点。");
+        renderMapResults(visibleResults);
+        return;
+      }
+
+      mapStatusEl.textContent = visibleResults.length
+        ? `已显示 ${visibleResults.length} 个地点`
+        : "地图已加载，可直接搜索地点。";
+
+      const hasCameraOverride = Boolean(state.mapCameraOverride);
+      if (!state.map) {
+        const overrideCenter = parseLocation(state.mapCameraOverride);
+        const defaultCenter = overrideCenter || parseLocation(state.userLocation) || parseLocation(state.mapConfig?.defaultCenter) || { lng: 104.195397, lat: 35.86166 };
+        state.map = new AMap.Map("mapCanvas", {
+          viewMode: state.map3D ? "3D" : "2D",
+          layers: [AMap.createDefaultLayer()],
+          showBuildingBlock: true,
+          features: ["bg", "point", "road", "building"],
+          zoom: Number.isFinite(Number(state.mapCameraOverride?.zoom)) ? Number(state.mapCameraOverride.zoom) : 12,
+          center: [defaultCenter.lng, defaultCenter.lat],
+          pitch: state.map3D ? 52 : 0,
+          rotation: state.map3D ? -16 : 0
+        });
+      }
+
+      ensureMapBuildingLayer();
+
+      clearMap();
+      const markers = [];
+      for (const item of visibleResults) {
+        const location = parseLocation(item.location);
+        if (!location) continue;
+        const dayLabel = Number.isFinite(Number(item.day_index)) ? `第${Number(item.day_index)}天 · ` : "";
+        const markerContent = item._displayOrder
+          ? `<div class="map-pin is-itinerary">${item._displayOrder}</div>`
+          : `<div class="map-pin is-search">搜</div>`;
+        const marker = new AMap.Marker({
+          position: [location.lng, location.lat],
+          title: `${dayLabel}${item.name || "地点"}`,
+          anchor: "center",
+          content: markerContent
+        });
+        marker.setMap(state.map);
+        marker.on?.("click", () => focusMapResult(item));
+        markers.push(marker);
+      }
+      if (userLocation) {
+        const currentMarker = new AMap.Marker({
+          position: [userLocation.lng, userLocation.lat],
+          title: "当前位置",
+          anchor: "center",
+          content: '<div class="map-pin is-current">我</div>'
+        });
+        currentMarker.setMap(state.map);
+        markers.push(currentMarker);
+      }
+      state.mapMarkers = markers;
+
+      const polylines = [];
+      for (const segment of visibleRouteSegments) {
+        const polylinePoints = Array.isArray(segment.polyline) ? segment.polyline.map((point) => parseLocation(point)).filter(Boolean) : [];
+        if (polylinePoints.length < 2) continue;
+        const line = new AMap.Polyline({
+          path: polylinePoints.map((point) => [point.lng, point.lat]),
+          strokeColor: getRouteColor(segment.day_index),
+          strokeWeight: state.map3D ? 6 : 5,
+          strokeOpacity: 0.92,
+          lineJoin: "round",
+          lineCap: "round",
+          showDir: true
+        });
+        line.setMap(state.map);
+        polylines.push(line);
+      }
+      state.mapPolylines = polylines;
+
+      if (!hasCameraOverride && markers.length && typeof state.map.setFitView === "function") {
+        state.map.setFitView([...markers, ...polylines]);
+        const fittedZoom = Number(state.map.getZoom?.() ?? 0);
+        if (state.map3D && fittedZoom > 15.2) {
+          state.map.setZoom?.(15.2);
+        }
+      } else if (!hasCameraOverride && typeof state.map.setZoomAndCenter === "function") {
+        const fallbackCenter = userLocation || parseLocation(state.mapConfig?.defaultCenter) || { lng: 104.195397, lat: 35.86166 };
+        state.map.setZoomAndCenter(userLocation ? 13 : 5, [fallbackCenter.lng, fallbackCenter.lat], false, 220);
+      }
+
+      state.mapCameraOverride = null;
+      applyMapMode();
+      renderMapResults(visibleResults);
+    }
+
+    async function loadMapSdk() {
+      try {
+        state.mapSdkError = null;
+        state.mapConfig = await api("/map/config");
+        if (state.mapConfig) {
+          const configuredCity = String(state.mapConfig.defaultCity || "").trim();
+          state.mapConfig.defaultCity = configuredCity || "绵阳";
+        }
+        if (!state.mapConfig.enabled) {
+          state.mapSdkError = "AMap browser key is missing.";
+          return;
+        }
+        window._AMapSecurityConfig = { securityJsCode: state.mapConfig.securityJsCode };
+        if (window.AMap) return;
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = `https://webapi.amap.com/maps?v=2.0&key=${state.mapConfig.browserKey}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      } catch (error) {
+        state.mapSdkError = error?.message || "unknown load error";
+        console.warn("map sdk load failed", error);
+      }
+      renderMap();
+    }
+
+    async function runMapSearch() {
+      const keyword = String(mapSearchInputEl?.value || "").trim();
+      if (!keyword) {
+        mapStatusEl.textContent = "请输入要搜索的地点关键词。";
+        return;
+      }
+      mapStatusEl.textContent = `正在搜索 ${keyword}...`;
+      try {
+        const res = await api("/map/search", {
+          method: "POST",
+          body: JSON.stringify({
+            keyword,
+            city: getActivePlanningCity(),
+            search_mode: "region",
+            radius_meters: 3000,
+            limit: 10,
+            user_location: state.userLocation
+          })
+        });
+        state.mapActiveResultKey = null;
+        state.mapManualSearchResults = (Array.isArray(res.items) ? res.items : []).map((item) => ({
+          ...item,
+          is_search_result: true,
+          source_query: keyword
+        }));
+        renderMap();
+        setStatus(res.status === "ok" ? `地图搜索已完成：${keyword}` : `地图搜索结果：${res.status || "empty"}`);
+      } catch (error) {
+        console.error(error);
+        mapStatusEl.textContent = `地图搜索失败：${error?.message || error}`;
+      }
+    }
+
+    function appendMessage(message) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `message-row ${message.role === "user" ? "user" : "assistant"}`;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = `<div>${escapeHtml(message.content || "")}</div>`;
+      wrapper.appendChild(bubble);
+      transcriptEl.appendChild(wrapper);
+      scrollBottom();
+    }
+
+    function renderMessages(messages) {
+      state.messages = Array.isArray(messages) ? messages.slice() : [];
+      transcriptEl.innerHTML = "";
+      if (!state.messages.length) {
+        transcriptEl.innerHTML = '<div class="empty">先发一条需求，我会开始做旅游地点规划建议。</div>';
+        return;
+      }
+      for (const message of state.messages) {
+        const wrapper = document.createElement("div");
+        wrapper.className = `message-row ${message.role === "user" ? "user" : "assistant"}`;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.innerHTML = `<div>${escapeHtml(message.content || "")}</div>`;
+        wrapper.appendChild(bubble);
+        transcriptEl.appendChild(wrapper);
+      }
+      scrollBottom();
+    }
+
+    function renderSessionList() {
+      const sessions = Array.isArray(state.sessions) ? state.sessions : [];
+      const loadedCount = sessions.length;
+      const totalCount = Number(state.sessionHistoryTotal || loadedCount || 0);
+      if (sessionPanelBadgeEl) {
+        sessionPanelBadgeEl.textContent = String(totalCount || 0);
+      }
+      sessionListMetaEl.textContent = loadedCount
+        ? `显示 ${loadedCount} 个最近会话，共 ${totalCount || loadedCount} 个会话`
+        : "暂无会话";
+      if (!sessions.length) {
+        sessionListEl.innerHTML = '<div class="session-empty">还没有历史会话。先发一条消息，系统会自动创建会话并保留记录。</div>';
+        return;
+      }
+
+      sessionListEl.innerHTML = sessions.map((session) => {
+        const active = state.sessionId && session.id === state.sessionId;
+        const preview = session.latest_message || session.title || "未命名会话";
+        const roleLabel = session.latest_message_role === "assistant" ? "助手" : "用户";
+        const messageCount = Number(session.message_count || 0);
+        return `
+          <article class="session-card ${active ? "active" : ""}" data-session-open="${escapeHtml(session.id)}">
+            <button class="session-delete" type="button" title="删除会话" aria-label="删除会话 ${escapeHtml(session.title || session.id)}" data-session-delete="${escapeHtml(session.id)}">×</button>
+            <h3>${escapeHtml(session.title || "未命名会话")}</h3>
+            <div class="preview">${escapeHtml(preview)}</div>
+            <div class="meta-row">
+              <span>${escapeHtml(roleLabel)} · ${escapeHtml(String(messageCount))} 条消息</span>
+              <span>${escapeHtml(formatSessionTime(session.updated_at || session.created_at || ""))}</span>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      sessionListEl.querySelectorAll("[data-session-open]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          await openSession(button.dataset.sessionOpen);
+        });
+      });
+      sessionListEl.querySelectorAll("[data-session-delete]").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          await deleteSession(button.dataset.sessionDelete);
+        });
+      });
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    async function loadAppInfo() {
+      try {
+        const info = await api("/health");
+        const model = info?.model || "-";
+        const apiBase = info?.api_base || "";
+        const provider = apiBase.includes("11434") ? "Ollama" : "ModelScope";
+        setModelName(model === "-" ? "-" : `${provider} · ${model}`);
+      } catch (error) {
+        console.warn("loadAppInfo failed", error);
+        setModelName("-");
+      }
+    }
+
+    async function loadSessionHistory() {
+      try {
+        const result = await api("/sessions?limit=12");
+        state.sessions = Array.isArray(result.items) ? result.items : [];
+        state.sessionHistoryTotal = Number.isFinite(Number(result.total))
+          ? Number(result.total)
+          : state.sessions.length;
+      } catch (error) {
+        console.warn("loadSessionHistory failed", error);
+        state.sessions = [];
+        state.sessionHistoryTotal = 0;
+      }
+      renderSessionList();
+    }
+
+    async function createSession() {
+      const session = await api("/sessions", {
+        method: "POST",
+        body: JSON.stringify({ title: "旅行问答会话" }),
+      });
+      state.sessionId = session.id;
+      sessionIdEl.textContent = session.id;
+      localStorage.setItem("travelAgentSessionId", session.id);
+      await loadSessionHistory();
+      await loadUserNotes(session.id);
+      syncNoteCityFromContext(true);
+      setRecentPanelOpen(false);
+      return session.id;
+    }
+
+    async function loadSessionItinerary(sessionId) {
+      if (!sessionId) return null;
+      try {
+        const result = await api(`/sessions/${sessionId}/itineraries/latest`);
+        return result?.itinerary?.content || null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function openSession(sessionId) {
+      if (!sessionId) return;
+      clearPendingRouteRefresh();
+      const result = await api(`/sessions/${sessionId}/messages?limit=200`);
+      state.sessionId = sessionId;
+      sessionIdEl.textContent = sessionId;
+      localStorage.setItem("travelAgentSessionId", sessionId);
+      renderMessages(result.items || []);
+      state.latestAssistantReply = getLatestAssistantText(result.items || []);
+      state.latestItinerary = await loadSessionItinerary(sessionId);
+      state.alternativeOptionsCacheKey = "";
+      state.mapManualSearchResults = [];
+      await loadUserNotes(sessionId);
+      syncNoteCityFromContext(true);
+      await syncMapFromConversation("", state.latestAssistantReply, state.latestItinerary);
+      await loadSessionHistory();
+      setRecentPanelOpen(false);
+      setStatus("已打开历史会话。");
+    }
+
+    async function deleteSession(sessionId) {
+      if (!sessionId) return;
+      const ok = window.confirm("确定删除这个会话吗？删除后消息也会一起清除。");
+      if (!ok) return;
+      await api(`/sessions/${sessionId}`, { method: "DELETE" });
+      if (state.localItineraryAdditions && state.localItineraryAdditions[sessionId]) {
+        const next = { ...(state.localItineraryAdditions || {}) };
+        delete next[sessionId];
+        state.localItineraryAdditions = next;
+        saveLocalItineraryAdditions();
+      }
+      if (state.sessionId === sessionId) {
+        localStorage.removeItem("travelAgentSessionId");
+        state.sessionId = null;
+        sessionIdEl.textContent = "未创建";
+        state.latestAssistantReply = "";
+        state.latestItinerary = null;
+        state.alternativeOptions = [];
+        state.alternativeOptionsCacheKey = "";
+        state.userNotes = [];
+        state.noteExpandedCity = "";
+        state.noteSearchResults = [];
+        state.noteSelectedPoi = null;
+        renderMessages([]);
+        renderAlternativePanel();
+        renderPlannerDiagnostics();
+        renderSavedUserNotes();
+        renderUserNoteSearchResults();
+        resetUserNoteDraft();
+      }
+      await loadSessionHistory();
+      setStatus("会话已删除。");
+    }
+
+    async function sendMessage() {
+      if (state.loading) return;
+      clearPendingRouteRefresh();
+      const message = promptInputEl.value.trim();
+      if (!message) return;
+      const previousPromptValue = promptInputEl.value;
+      promptInputEl.value = "";
+      appendMessage({ role: "user", content: message });
+
+      state.loading = true;
+      sendBtnEl.disabled = true;
+      setStatus("正在进行工具规划：需求解析 → 候选召回 → 地点验证 → 路线校验...");
+
+      try {
+        const sessionId = state.sessionId || await createSession();
+        const result = await api("/chat", {
+          method: "POST",
+          body: JSON.stringify({
+            message,
+            session_id: sessionId,
+            conversation_context: buildConversationContext(),
+          }),
+        });
+        state.sessionId = result.session_id;
+        sessionIdEl.textContent = result.session_id;
+        localStorage.setItem("travelAgentSessionId", result.session_id);
+        renderMessages(result.messages || []);
+        state.latestAssistantReply = result.assistantMessage || getLatestAssistantText(result.messages || []);
+        state.latestItinerary = result.itinerary || null;
+        state.mapManualSearchResults = [];
+        await loadUserNotes(result.session_id);
+        syncNoteCityFromContext(true);
+        await syncMapFromConversation(
+          message,
+          state.latestAssistantReply,
+          state.latestItinerary
+        );
+        await loadSessionHistory();
+        const warnings = Array.isArray(state.latestItinerary?.planner_warnings) ? state.latestItinerary.planner_warnings : [];
+        setStatus(warnings.length ? `已完成工具规划，并返回 ${warnings.length} 条校验提示。` : "已完成工具规划并同步地图。");
+      } catch (error) {
+        console.error(error);
+        promptInputEl.value = previousPromptValue;
+        setStatus("请求失败，请检查后端或模型接口配置。");
+      } finally {
+        state.loading = false;
+        sendBtnEl.disabled = false;
+      }
+    }
+
+    async function restoreSession() {
+      const saved = localStorage.getItem("travelAgentSessionId");
+      await loadAppInfo();
+      await loadMapSdk();
+      requestBrowserLocation();
+      await loadSessionHistory();
+      if (!saved) return;
+      try {
+        clearPendingRouteRefresh();
+        const result = await api(`/sessions/${saved}/messages?limit=200`);
+        state.sessionId = saved;
+        sessionIdEl.textContent = saved;
+        renderMessages(result.items || []);
+        state.latestAssistantReply = getLatestAssistantText(result.items || []);
+        state.latestItinerary = await loadSessionItinerary(saved);
+        state.alternativeOptionsCacheKey = "";
+        state.mapManualSearchResults = [];
+        await loadUserNotes(saved);
+        syncNoteCityFromContext(true);
+        await syncMapFromConversation("", state.latestAssistantReply, state.latestItinerary);
+        setStatus("已恢复上次会话。");
+        renderSessionList();
+      } catch (error) {
+        localStorage.removeItem("travelAgentSessionId");
+      }
+    }
+
+    sendBtnEl.addEventListener("click", sendMessage);
+    mapSearchBtnEl.addEventListener("click", runMapSearch);
+    noteSearchBtnEl?.addEventListener("click", searchUserNotePlaces);
+    noteSaveBtnEl?.addEventListener("click", saveUserNoteEntry);
+    noteResetBtnEl?.addEventListener("click", () => {
+      resetUserNoteDraft({ syncCity: true });
+      setStatus("已清空用户记录输入。");
+    });
+    mapSearchInputEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        runMapSearch();
+      }
+    });
+    notePlaceInputEl?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchUserNotePlaces();
+      }
+    });
+    noteCityInputEl?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchUserNotePlaces();
+      }
+    });
+    mapMode2DBtnEl.addEventListener("click", () => setMapMode(false));
+    mapMode3DBtnEl.addEventListener("click", () => setMapMode(true));
+    mapZoomInBtnEl.addEventListener("click", () => {
+      if (state.map && typeof state.map.zoomIn === "function") state.map.zoomIn();
+    });
+    mapZoomOutBtnEl.addEventListener("click", () => {
+      if (state.map && typeof state.map.zoomOut === "function") state.map.zoomOut();
+    });
+    newSessionBtnEl.addEventListener("click", async () => {
+      clearPendingRouteRefresh();
+      localStorage.removeItem("travelAgentSessionId");
+      state.sessionId = null;
+      state.messages = [];
+      state.latestAssistantReply = "";
+      state.latestItinerary = null;
+      state.userLocation = null;
+      state.alternativeOptions = [];
+      state.alternativeOptionsCacheKey = "";
+      state.userNotes = [];
+      state.noteExpandedCity = "";
+      state.noteSearchResults = [];
+      state.noteSelectedPoi = null;
+      state.mapSearchResults = [];
+      state.mapManualSearchResults = [];
+      state.mapPreviewItems = [];
+      state.mapPendingCandidates = [];
+      state.mapRouteSegments = [];
+      state.mapItineraryDays = [];
+      state.mapSelectedDay = null;
+      state.mapCameraOverride = null;
+      state.placeResolveCache = new Map();
+      state.placeCandidatesCache = new Map();
+      if (mapSearchInputEl) mapSearchInputEl.value = "";
+      sessionIdEl.textContent = "未创建";
+      renderMessages([]);
+      renderAlternativePanel();
+      renderPlannerDiagnostics();
+      renderSavedUserNotes();
+      renderUserNoteSearchResults();
+      resetUserNoteDraft();
+      destroyMap();
+      renderMap();
+      requestBrowserLocation();
+      await loadSessionHistory();
+      setRecentPanelOpen(false);
+      setStatus("已重置为新会话。");
+    });
+    sessionPanelToggleEl.addEventListener("click", () => {
+      setRecentPanelOpen(!state.recentPanelOpen);
+    });
+    sessionPanelCloseEl.addEventListener("click", () => {
+      setRecentPanelOpen(false);
+    });
+    document.addEventListener("click", (event) => {
+      if (!state.recentPanelOpen) return;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (
+        sessionPanelEl.contains(target) ||
+        sessionPanelToggleEl.contains(target)
+      ) {
+        return;
+      }
+      setRecentPanelOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setRecentPanelOpen(false);
+      }
+    });
+    promptInputEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    syncMapModeButtons();
+    renderSavedUserNotes();
+    renderUserNoteSearchResults();
+    syncNoteCityFromContext(true);
+    restoreSession();
+  </script>
+</body>
+</html>

@@ -1,0 +1,4661 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>患者智能诊疗协同 Agent</title>
+  <style>
+    :root {
+      --bg: #f4efe5;
+      --bg-deep: #ebe4d6;
+      --panel: rgba(255, 253, 249, 0.84);
+      --panel-subtle: rgba(255, 253, 249, 0.6);
+      --panel-strong: #fffdf9;
+      --ink: #18322d;
+      --subtle: #61746d;
+      --line: rgba(24, 50, 45, 0.1);
+      --line-subtle: rgba(24, 50, 45, 0.06);
+      --brand: #177f68;
+      --brand-deep: #0d5e4d;
+      --accent: #d79a39;
+      --accent-soft: #f3dfb2;
+      --error: #b43d3d;
+      --shadow: 0 18px 48px rgba(34, 57, 51, 0.09);
+      --shadow-soft: 0 8px 22px rgba(34, 57, 51, 0.06);
+      --radius: 24px;
+      --radius-sm: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(18, 125, 103, 0.2), transparent 22%),
+        radial-gradient(circle at 100% 8%, rgba(215, 154, 57, 0.16), transparent 20%),
+        radial-gradient(circle at 50% 100%, rgba(12, 80, 66, 0.08), transparent 24%),
+        linear-gradient(180deg, #fbf8f2 0%, var(--bg) 58%, var(--bg-deep) 100%);
+      min-height: 100vh;
+      position: relative;
+    }
+
+
+    .shell {
+      width: min(1320px, calc(100vw - 32px));
+      margin: 20px auto 42px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chatView { order: 2; }
+    #queryView { order: 1; }
+
+    .hero, .panel {
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .hero {
+      padding: 30px 32px;
+      background:
+        radial-gradient(circle at top right, rgba(243, 223, 178, 0.28), transparent 28%),
+        linear-gradient(135deg, rgba(8, 57, 48, 0.98), rgba(19, 111, 92, 0.95) 55%, rgba(27, 131, 108, 0.9));
+      color: #f5fbf9;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -60px;
+      bottom: -80px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 72%);
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      font-size: clamp(26px, 3.6vw, 38px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 720px;
+      font-size: 15px;
+      line-height: 1.82;
+      color: rgba(245, 251, 249, 0.92);
+    }
+
+    .hero-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .workspace-nav .mode-tab {
+      min-width: 112px;
+      min-height: 43px;
+    }
+
+    .workspace-nav .mode-tab:not(.active) {
+      color: #083f35;
+      background: linear-gradient(180deg, #fff7e8, #f7e5bf);
+      box-shadow: 0 12px 24px rgba(6, 33, 28, 0.16);
+    }
+
+    .workspace-nav .mode-tab.active {
+      color: #f7fffc;
+      background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+    }
+
+    .hero a {
+      text-decoration: none;
+      color: #083f35;
+      background: linear-gradient(180deg, #fff7e8, #f7e5bf);
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(6, 33, 28, 0.16);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .hero a:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 28px rgba(6, 33, 28, 0.18);
+      background: linear-gradient(180deg, #fffaf0, #f5ddb0);
+    }
+
+    /* 患者检索面板 */
+    .query-toggle-panel {
+      margin-top: 14px;
+      order: 1;
+      display: none;
+      animation: queryPanelIn 280ms ease;
+    }
+
+    .query-toggle-panel.visible {
+      display: block;
+    }
+
+    @keyframes queryPanelIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .query-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px 0;
+    }
+
+    .query-panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .query-panel-close-btn {
+      border: none;
+      background: rgba(24, 50, 45, 0.06);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--subtle);
+      cursor: pointer;
+      transition: background 160ms ease;
+    }
+
+    .query-panel-close-btn:hover {
+      background: rgba(24, 50, 45, 0.12);
+    }
+
+    #toggleQueryPanelBtn {
+      font-size: 13px;
+      padding: 12px 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .panel {
+      padding: 20px;
+      position: relative;
+    }
+
+    .panel.wide {
+      grid-column: 1 / -1;
+    }
+
+    details.panel {
+      padding: 0;
+      overflow: clip;
+    }
+
+    details.panel > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 18px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    details.panel > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.panel > summary::after {
+      content: "展开";
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--brand);
+      background: rgba(15, 142, 121, 0.1);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    details.panel[open] > summary::after {
+      content: "收起";
+    }
+
+    details.panel > .panel-body {
+      padding: 0 18px 18px;
+    }
+
+    .answer-panel {
+      order: 20;
+    }
+
+    .speech-panel {
+      order: 21;
+    }
+
+    .debug-panel {
+      order: 22;
+    }
+
+    .chat-panel {
+      order: 10;
+      scroll-margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: clamp(1450px, 168vh, 2400px);
+      contain: content;
+    }
+
+    .chat-panel > .chat-transcript-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      flex: 1 1 auto;
+    }
+
+    .chat-panel > .chat-transcript-section .chat-window {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .dual-chat {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .memory-login-banner {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+      background:
+        radial-gradient(circle at top left, rgba(215, 154, 57, 0.14), transparent 32%),
+        linear-gradient(180deg, rgba(255,255,255,0.96), rgba(249, 245, 236, 0.98));
+      border-color: rgba(215, 154, 57, 0.18);
+    }
+
+    .memory-login-cta {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 247, 232, 0.96), rgba(247, 229, 191, 0.9));
+      color: #7a4c0d;
+      font-size: 14px;
+      line-height: 1.7;
+      font-weight: 800;
+      border: 1px solid rgba(215, 154, 57, 0.24);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .memory-login-hint {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(215, 154, 57, 0.08);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.8;
+      border: 1px solid rgba(215, 154, 57, 0.18);
+    }
+
+    .chat-mode-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 560px;
+    }
+
+    .chat-mode-card .stage-head {
+      align-items: flex-start;
+    }
+
+    .chat-mode-card .chat-window {
+      flex: 1 1 auto;
+      min-height: 260px;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .chat-window-compact {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 14px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .memory-login-strip {
+      display: grid;
+      gap: 14px;
+    }
+
+    .memory-login-meta {
+      display: grid;
+      gap: 6px;
+      color: var(--subtle);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--subtle);
+    }
+
+    .context {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--subtle);
+      font-weight: 700;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid rgba(24, 50, 45, 0.16);
+      border-radius: 14px;
+      padding: 11px 13px;
+      font: inherit;
+      color: var(--ink);
+      background: var(--panel-strong);
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: rgba(15, 142, 121, 0.72);
+      box-shadow: 0 0 0 4px rgba(15, 142, 121, 0.12);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: saturate(1.04);
+    }
+
+    button.primary {
+      color: #f7fffc;
+      background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+      box-shadow: 0 14px 28px rgba(15, 142, 121, 0.24);
+    }
+
+    button.secondary {
+      color: #18322d;
+      background: linear-gradient(180deg, #f7f0e4, #ece2d2);
+      box-shadow: var(--shadow-soft);
+    }
+
+    button.warn {
+      color: #fff9f5;
+      background: linear-gradient(135deg, #c96d3a, #a84f27);
+      box-shadow: 0 14px 28px rgba(169, 79, 39, 0.18);
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--subtle);
+    }
+
+    .status {
+      min-height: 20px;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand-deep);
+    }
+
+    .status.error { color: var(--error); }
+
+    .answer-box, pre {
+      margin: 0;
+      border-radius: 20px;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .answer-box {
+      background:
+        radial-gradient(circle at top right, rgba(243, 223, 178, 0.38), transparent 28%),
+        linear-gradient(135deg, rgba(15, 142, 121, 0.12), rgba(241, 178, 77, 0.14));
+      color: var(--ink);
+      line-height: 1.86;
+      min-height: 146px;
+      white-space: pre-wrap;
+      border: 1px solid rgba(24, 50, 45, 0.08);
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 13px;
+      line-height: 1.65;
+      color: #ecfff7;
+      background: #11261f;
+      min-height: 260px;
+    }
+
+    .output-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #0a4338;
+      background: #f6ead0;
+    }
+
+    .chat-window {
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      padding: 16px;
+      border-radius: 22px;
+      background:
+        linear-gradient(rgba(255,255,255,0.52) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(239, 247, 243, 0.95));
+      background-size: 100% 44px, 100% 100%;
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      display: grid;
+      gap: 4px;
+      min-height: 640px;
+      contain: content;
+      will-change: scroll-position;
+      height: calc(100vh - 190px);
+      max-height: 92vh;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+    }
+
+    .chat-empty {
+      color: rgba(24, 50, 45, 0.45);
+      font-size: 15px;
+      line-height: 1.9;
+      letter-spacing: 0.02em;
+    }
+
+    .chat-message {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .chat-message.user {
+      justify-content: flex-end;
+    }
+
+    .chat-message.assistant,
+    .chat-message.system {
+      justify-content: flex-start;
+    }
+
+    .chat-bubble {
+      max-width: min(72%, 560px);
+      display: inline-block;
+      width: fit-content;
+      padding: 4px 10px 5px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.28;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: none;
+      align-self: flex-start;
+      box-sizing: border-box;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: linear-gradient(135deg, #daf5dd, #c8edcc);
+      color: var(--ink);
+      border: 1px solid rgba(24, 50, 45, 0.04);
+      border-bottom-right-radius: 6px;
+    }
+
+    .chat-message.assistant .chat-bubble {
+      background: #f7f5f0;
+      color: var(--ink);
+      border: 1px solid rgba(24, 50, 45, 0.05);
+      border-bottom-left-radius: 6px;
+    }
+
+    /* 很关键：清掉内部默认外边距 */
+    .chat-bubble p,
+    .chat-bubble h1,
+    .chat-bubble h2,
+    .chat-bubble h3,
+    .chat-bubble h4,
+    .chat-bubble h5,
+    .chat-bubble h6,
+    .chat-bubble div {
+      margin: 0;
+    }
+
+    .chat-message.system .chat-bubble {
+      background: #f4ebdc;
+      color: #6b4f2d;
+      border-bottom-left-radius: 6px;
+    }
+
+    .chat-composer {
+      margin-top: 0;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(243, 223, 178, 0.22), transparent 24%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(245, 250, 247, 0.99));
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), var(--shadow-soft);
+    }
+
+    .chat-input-pane {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .chat-input-pane > label.full {
+      grid-column: auto;
+    }
+
+    .chat-input-pane > .chat-composer-actions {
+      grid-column: auto;
+    }
+
+    .chat-input-pane > .status.full {
+      grid-column: 1 / -1;
+    }
+
+    .chat-composer .actions {
+      margin-top: 0;
+      justify-content: flex-end;
+    }
+
+    .chat-composer textarea {
+      min-height: 44px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      font-size: 16px;
+      line-height: 1.6;
+      border-radius: 16px;
+    }
+
+    .chat-bubble > div {
+      margin: 0;
+      line-height: 1.28;
+    }
+
+    .chat-message.assistant .chat-bubble > div {
+      line-height: 1.3;
+    }
+
+    .chat-bubble > div p {
+      margin: 0;
+    }
+
+
+    .chat-composer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .chat-composer-actions .actions {
+      margin-top: 0;
+      margin-left: 0;
+    }
+
+    .chat-advanced-fields {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      padding-top: 0;
+    }
+
+    .chat-advanced-fields[hidden] {
+      display: none !important;
+    }
+
+    .chat-composer .hint,
+    .chat-composer .status {
+      margin-top: 0;
+    }
+
+    .hero-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.72fr);
+      justify-content: space-between;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .hero-copy {
+      flex: 1 1 auto;
+    }
+
+    .hero-aside {
+      min-width: 250px;
+      max-width: 360px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      padding: 18px 18px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.08));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22), 0 12px 28px rgba(0,0,0,0.08);
+    }
+
+    .hero-aside strong {
+      font-size: 14px;
+      color: #ffffff;
+    }
+
+    .hero-aside span {
+      font-size: 13px;
+      line-height: 1.7;
+      color: rgba(245, 251, 249, 0.82);
+    }
+
+    .workspace {
+      margin-top: 18px;
+    }
+
+    .workspace[hidden] {
+      display: none !important;
+    }
+
+    .mode-switch-card {
+      margin-top: 14px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .mode-switch-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .mode-tab {
+      min-width: 120px;
+      min-height: 44px;
+      justify-content: center;
+      text-align: center;
+      border-radius: 14px;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f6efe2, #eee3d2);
+      box-shadow: var(--shadow-soft);
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 0 18px;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+    }
+
+    .mode-tab:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(6, 33, 28, 0.16);
+      background: linear-gradient(180deg, #fffaf0, #f5ddb0);
+    }
+
+    .mode-tab.active {
+      color: #f7fffc;
+      background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+      box-shadow: 0 14px 30px rgba(15, 142, 121, 0.22);
+    }
+
+    .mode-switch-desc {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--subtle);
+    }
+
+    .context-board {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .context-card {
+      display: grid;
+      gap: 12px;
+      min-height: 100%;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.18)),
+        var(--panel-subtle);
+      border-color: var(--line-subtle);
+    }
+
+    .context-card h2,
+    .query-shell h2,
+    .answer-stage h2,
+    .chat-sidebar h2 {
+      margin-bottom: 0;
+    }
+
+    .context-kpis {
+      display: grid;
+      gap: 8px;
+    }
+
+    .context-kpis div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      font-size: 14px;
+    }
+
+    .context-kpis strong {
+      font-size: 15px;
+    }
+
+    #chatView .chat-sidebar > .context-card .form-grid.compact {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #chatView .chat-sidebar > .context-card .form-grid.compact label {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      gap: 6px;
+    }
+
+    .patient-glance {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .glance-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(15, 142, 121, 0.1);
+      color: #0e5b4d;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .query-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      gap: 16px;
+    }
+
+    .query-shell {
+      display: grid;
+      gap: 12px;
+      background:
+        radial-gradient(circle at top right, rgba(243, 223, 178, 0.18), transparent 26%),
+        linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.16));
+    }
+
+    .query-shell .actions {
+      margin-top: 0;
+    }
+
+    .stage-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stage-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .stage-copy p {
+      margin: 0;
+      color: var(--subtle);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .answer-stage {
+      display: grid;
+      gap: 14px;
+      margin-top: 16px;
+      background:
+        radial-gradient(circle at top right, rgba(243, 223, 178, 0.18), transparent 26%),
+        linear-gradient(180deg, rgba(255,255,255,0.48), rgba(255,255,255,0.18));
+    }
+
+    .answer-stage .answer-box {
+      min-height: 170px;
+    }
+
+    .answer-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .speech-mode-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .speech-mode-btn {
+      border: 1px solid rgba(128, 128, 128, 0.24);
+      background: rgba(255, 255, 255, 0.8);
+      color: #2b3440;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+    .speech-mode-btn:hover {
+      border-color: rgba(66, 116, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .speech-mode-btn.active {
+      background: linear-gradient(135deg, #4274ff, #6ba4ff);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .speech-mode-note {
+      font-size: 12px;
+      color: #6b7481;
+    }
+
+    .debug-summary {
+      font-size: 12px;
+      color: var(--subtle);
+    }
+    /* 聊天子模式切换栏 */
+    .chat-submode-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .chat-submode-btn {
+      min-width: 90px;
+      min-height: 36px;
+      border-radius: 12px;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f6efe2, #eee3d2);
+      box-shadow: var(--shadow-soft);
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0 14px;
+      transition: transform 140ms ease, background 140ms ease, color 140ms ease;
+    }
+
+    .chat-submode-btn:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(180deg, #fffaf0, #f5ddb0);
+    }
+
+    .chat-submode-btn.active {
+      color: #f7fffc;
+      background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+      box-shadow: 0 8px 20px rgba(15, 142, 121, 0.22);
+    }
+
+    .chat-submode-hint {
+      font-size: 12px;
+      color: var(--subtle);
+      margin-left: 4px;
+    }
+
+    /* 聊天主列（子模式切换 + 消息区 + 输入框） */
+    .chat-main-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+      grid-area: panel;
+      height: calc(100vh - 220px);
+      min-height: 640px;
+    }
+
+    .chat-main-col > .chat-panel {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .chat-main-col > .chat-input-pane {
+      flex: 0 0 auto;
+      order: 20;
+    }
+
+    .chat-main-col > .memory-debug-drawer {
+      order: 10;
+    }
+
+    #chatView .chat-stage {
+      grid-template-areas:
+        "sidebar panel"
+        "sidebar panel";
+    }
+
+    .chat-transcript-pane {
+      min-height: 0;
+      height: 100%;
+      max-height: none;
+    }
+
+    /* 查询检索折叠面板内的双列布局 */
+    /* 登录 Modal */
+    .login-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .login-modal-backdrop[hidden] {
+      display: none !important;
+    }
+    .login-modal {
+      width: min(440px, calc(100vw - 32px));
+      padding: 24px;
+      position: relative;
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--subtle);
+      padding: 4px 8px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+    .modal-close-btn:hover { color: var(--ink); background: var(--line); }
+    .memory-login-status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .memory-login-card .memory-login-status {
+      margin-left: 0;
+    }
+
+    .memory-login-inline {
+      display: grid;
+      gap: 12px;
+      background:
+        radial-gradient(circle at top left, rgba(215, 154, 57, 0.12), transparent 32%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,245,236,0.98));
+      border-color: rgba(215, 154, 57, 0.22);
+    }
+
+    .query-search-drawer .query-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      gap: 16px;
+      margin-top: 0;
+    }
+
+    .query-shell-inner {
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      background: rgba(255,253,248,0.98);
+      border: 1px solid var(--line);
+    }
+
+    .query-shell-inner .actions {
+      margin-top: 0;
+    }
+
+    /* 通用聊天侧边栏卡片 */
+    .general-sidebar-card,
+    .memory-sidebar-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .admin-drawer {
+      margin-top: 14px;
+    }
+
+    .admin-drawer .panel-body {
+      padding-top: 0;
+    }
+
+    .admin-intro {
+      margin-bottom: 12px;
+      color: var(--subtle);
+      line-height: 1.6;
+      font-size: 12px;
+    }
+
+    .chat-stage {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+      grid-template-areas:
+        "sidebar panel"
+        "sidebar composer";
+      min-height: calc(100vh - 220px);
+    }
+
+    .general-stage {
+      display: grid;
+      grid-template-columns: 316px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .general-sidebar {
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 24px;
+      align-self: start;
+    }
+
+    .general-quick-card,
+    .general-recent-card {
+      display: grid;
+      gap: 12px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.18)),
+        var(--panel-subtle);
+      border-color: var(--line-subtle);
+    }
+
+    .general-recent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .general-recent-list {
+      display: grid;
+      gap: 2px;
+      grid-auto-rows: 28px;
+      align-content: start;
+      max-height: none;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 2px;
+    }
+
+    #generalSidebarCard,
+    #memorySidebarCard {
+      grid-template-rows: auto auto auto 1fr;
+      align-content: start;
+    }
+
+    #generalRecentList {
+      min-height: 0;
+    }
+
+    .general-recent-empty {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed rgba(24, 50, 45, 0.14);
+      background: rgba(255, 255, 255, 0.5);
+      color: var(--subtle);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .general-recent-item {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      transition: background 100ms ease;
+    }
+
+    .general-recent-item:hover {
+      background: rgba(23, 127, 104, 0.05);
+    }
+
+    .general-recent-item.active {
+      background: rgba(23, 127, 104, 0.09);
+    }
+
+    .general-recent-select {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-align: left;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      line-height: 1.2;
+    }
+
+    .general-recent-preview {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 13px;
+      line-height: 1.25;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .general-recent-time {
+      flex: 0 0 auto;
+      font-size: 11px;
+      line-height: 1.2;
+      color: var(--subtle);
+      white-space: nowrap;
+      opacity: 0.7;
+    }
+
+    .general-recent-delete {
+      width: 22px;
+      flex: 0 0 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: none;
+      background: rgba(180, 61, 61, 0.08);
+      color: var(--error);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 1;
+      pointer-events: auto;
+      transition: color 100ms ease, background 100ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .general-recent-item:hover .general-recent-delete,
+    .general-recent-item:focus-within .general-recent-delete {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .general-recent-delete:hover {
+      color: var(--error);
+      background: rgba(180, 61, 61, 0.1);
+    }
+
+    .chat-sidebar {
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 24px;
+      grid-area: sidebar;
+      align-self: stretch;
+      height: calc(100vh - 220px);
+      min-height: 640px;
+    }
+
+    #generalView .chat-sidebar,
+    #chatView .chat-sidebar {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .chat-sidebar > .context-card:first-child,
+    #chatView .chat-sidebar > .context-card:first-child {
+      min-height: 100%;
+      overflow: hidden;
+    }
+
+    .sidebar-primary-action button {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+
+    .chat-panel {
+      order: 10;
+      grid-area: panel;
+      scroll-margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+      max-height: none;
+      padding: 20px;
+      background:
+        radial-gradient(circle at top right, rgba(243, 223, 178, 0.16), transparent 22%),
+        linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(248, 252, 250, 0.94));
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .chat-stage > .chat-composer {
+      grid-area: composer;
+      margin-top: 2px;
+    }
+
+    .memory-debug-drawer {
+      margin-top: 16px;
+      background:
+        radial-gradient(circle at top left, rgba(15, 142, 121, 0.08), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.97), rgba(245, 250, 248, 0.98));
+      border: 1px solid rgba(23, 127, 104, 0.12);
+    }
+
+    .memory-debug-drawer > .panel-body {
+      padding-top: 4px;
+    }
+
+    .memory-debug-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+
+    .memory-debug-card {
+      border-radius: 16px;
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      box-shadow: 0 8px 18px rgba(34, 57, 51, 0.04);
+    }
+
+    .memory-debug-card h3 {
+      margin: 0;
+      font-size: 14px;
+      color: var(--brand-deep);
+    }
+
+    .memory-debug-card p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .memory-debug-card ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .memory-debug-empty {
+      grid-column: 1 / -1;
+      border-radius: 16px;
+      border: 1px dashed rgba(24, 50, 45, 0.16);
+      background: rgba(255, 255, 255, 0.58);
+      padding: 14px;
+      color: var(--subtle);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .memory-debug-raw {
+      margin-top: 8px;
+    }
+
+    .memory-debug-raw > summary {
+      list-style: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--brand-deep);
+      padding: 0 0 10px;
+    }
+
+    .memory-debug-raw > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .memory-debug-drawer pre {
+      margin: 0;
+      max-height: 360px;
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      background: rgba(246, 250, 248, 0.96);
+      padding: 14px;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .chat-tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(24, 50, 45, 0.08);
+    }
+
+    .mini-btn {
+      padding: 8px 12px;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
+    .mini-btn.primary {
+      box-shadow: none;
+    }
+
+    .chat-message.user .chat-tools,
+    .chat-message.system .chat-tools {
+      display: none;
+    }
+
+    .voice-note {
+      font-size: 12px;
+      color: var(--subtle);
+    }
+    .microcopy {
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--subtle);
+    }
+
+    .compact-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .compact-list li {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(245, 249, 247, 0.92);
+      border: 1px solid rgba(24, 50, 45, 0.08);
+    }
+
+    .hero-copy p,
+    .hero-aside span:last-child,
+    .mode-switch-desc,
+    .query-shell .hint,
+    .answer-stage .hint,
+    .debug-summary,
+    .admin-intro,
+    .voice-note {
+      opacity: 0.88;
+    }
+
+    .context-board .context-card:nth-child(2) {
+      align-content: start;
+    }
+
+    .context-board .context-card:nth-child(2) .meta {
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .context-board .context-card:nth-child(2) .meta div {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(245, 249, 247, 0.86);
+      border: 1px solid rgba(24, 50, 45, 0.08);
+    }
+
+    .admin-drawer > summary,
+    details.panel.wide > summary {
+      font-size: 15px;
+    }
+
+    .admin-drawer,
+    details.panel.wide {
+      box-shadow: 0 10px 26px rgba(35, 61, 53, 0.05);
+    }
+
+    .query-shell,
+    .answer-stage,
+    .chat-sidebar > .context-card,
+    .chat-panel {
+      background-color: rgba(255, 253, 248, 0.98);
+    }
+
+    .chat-sidebar > .context-card {
+      padding: 18px;
+    }
+
+    .chat-sidebar .actions button,
+    .query-shell .actions button,
+    .answer-actions button {
+      box-shadow: none;
+    }
+
+    #chatView .chat-sidebar > .context-card .stage-copy p,
+    .query-shell .stage-copy p {
+      max-width: 42ch;
+    }
+
+    #queryView .context-board + .query-stage {
+      margin-top: 6px;
+    }
+
+    #queryView .context-board .context-card:first-child {
+      background:
+        linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(243, 249, 246, 0.96));
+    }
+
+    #queryView .query-stage .query-shell:first-child {
+      border: 1px solid rgba(23, 127, 104, 0.16);
+    }
+
+    #queryView .query-stage .query-shell:first-child .stage-head .chip {
+      background: rgba(23, 127, 104, 0.12);
+      color: var(--brand-deep);
+    }
+
+    #chatView .chat-panel .output-head h2 {
+      font-size: 20px;
+      letter-spacing: 0.01em;
+    }
+
+    #chatView .chat-panel .meta {
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    #chatView > .chat-stage > .chat-composer {
+      background:
+        radial-gradient(circle at top left, rgba(243, 223, 178, 0.18), transparent 22%),
+        linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248, 251, 249, 0.99));
+    }
+
+    .speech-inline {
+      width: 100%;
+      margin-top: 4px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(24, 50, 45, 0.08);
+      padding: 4px;
+    }
+
+    .panel:hover {
+      box-shadow: 0 24px 56px rgba(34, 57, 51, 0.1);
+    }
+
+    .query-shell,
+    .chat-composer,
+    .mode-tab {
+      transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
+    }
+
+    .query-shell:hover,
+    .chat-composer:hover {
+      border-color: rgba(23, 127, 104, 0.16);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 720px) {
+      .memory-debug-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-composer-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .chat-composer-actions .actions {
+        margin-left: 0;
+        justify-content: stretch;
+      }
+
+      .chat-composer-actions .actions button,
+      .chat-composer-actions > button {
+        width: 100%;
+      }
+
+      .general-recent-delete {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .context-card, .answer-stage, .chat-panel, .general-quick-card, .general-recent-card {
+        border-radius: 16px;
+      }
+
+      .chat-window {
+        border-radius: 16px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .chat-stage {
+        gap: 12px;
+      }
+
+      .general-stage {
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .shell {
+        padding: 8px;
+      }
+
+      h1 {
+        font-size: clamp(22px, 5vw, 32px);
+      }
+
+      .hero-links {
+        flex-direction: column;
+      }
+
+      .hero-links a {
+        width: 100%;
+        text-align: center;
+      }
+
+      .hero-layout {
+        flex-direction: column;
+      }
+
+      .hero-aside {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+      }
+
+      .mode-switch-actions {
+        flex-direction: column;
+      }
+
+      .mode-tab {
+        width: 100%;
+      }
+
+      .mode-switch-actions {
+        flex-direction: column;
+      }
+
+      .panel {
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .grid, .context, .form-grid, .context-board, .query-stage, .chat-stage, .general-stage {
+        grid-template-columns: 1fr;
+      }
+
+      #chatView .chat-sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-input-pane {
+        grid-template-columns: 1fr;
+      }
+
+      .mode-switch-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .mode-switch-actions {
+        flex-wrap: wrap;
+      }
+
+      .mode-tab {
+        flex: 1;
+        min-width: 100px;
+      }
+
+      .dual-chat {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-sidebar {
+        position: static;
+        grid-row: auto;
+      }
+
+      .general-sidebar {
+        position: static;
+      }
+
+      .chat-main-col {
+        height: auto;
+        min-height: 0;
+      }
+
+      .chat-sidebar {
+        height: auto;
+        min-height: 0;
+      }
+
+      .chat-panel {
+        grid-column: auto;
+        grid-row: auto;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+      }
+
+      .general-chat-card {
+        grid-column: auto;
+        grid-row: auto;
+      }
+
+      .chat-stage > .chat-composer {
+        margin-top: 0;
+      }
+
+      .chat-window {
+        height: min(84vh, 1040px);
+        max-height: 84vh;
+      }
+
+      .chat-bubble {
+        max-width: min(86%, 360px);
+        padding: 5px 10px 6px;
+        line-height: 1.2;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .hero-layout {
+        flex-direction: column;
+      }
+
+      .hero-aside {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+      }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .chat-message.new-msg {
+      animation: fadeInUp 0.25s ease-out;
+    }
+
+    .btn-loading {
+      position: relative;
+      pointer-events: none;
+    }
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(255, 255, 255, 0.4);
+      animation: btnPulse 1s ease-in-out infinite;
+    }
+    @keyframes btnPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    details .details-content {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.25s ease;
+    }
+    details[open] .details-content {
+      grid-template-rows: 1fr;
+    }
+    details .details-content > div {
+      overflow: hidden;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .chat-message.new-msg { animation: none; }
+      .btn-loading::after { animation: none; }
+      details .details-content { transition: none; }
+    }
+
+    @media (min-width: 1081px) {
+      .hero-copy p,
+      .hero-aside span:last-child,
+      .mode-switch-desc,
+      .answer-stage .hint,
+      .debug-summary,
+      .admin-intro {
+        display: none;
+      }
+    }
+
+    .image-file-name {
+      font-size: 11px;
+      color: var(--brand);
+      margin-left: 4px;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-layout">
+        <div class="hero-copy">
+          <h1>患者智能诊疗协同 Agent</h1>
+          <p>这个页面以患者检索和聊天问答为主。你可以先在 Query 页面里选中患者、读取主档和病历，再切到 Chat 页面继续追问；每条助手回答下方都支持直接语音播报。</p>
+          <div class="hero-links workspace-nav" aria-label="主功能入口">
+            <button class="primary mode-tab active" id="chatViewBtn" type="button">通用聊天</button>
+            <button class="secondary mode-tab" id="memoryViewBtn" type="button">记忆聊天</button>
+            <button class="secondary mode-tab" id="toggleQueryPanelBtn" type="button">患者检索</button>
+            <a href="/docs" target="_blank" rel="noreferrer">打开 Swagger</a>
+            <a href="/api/v1/mcp/tools" target="_blank" rel="noreferrer">查看 MCP 工具</a>
+            <a href="/health" target="_blank" rel="noreferrer">健康检查</a>
+          </div>
+        </div>
+        <aside class="hero-aside">
+          <strong>Agent 能力</strong>
+          <span>聚焦患者信息检索、连续问答、身份确认、图文提问和语音播报。</span>
+          <span>支持从检索到追问的完整临床协同流程，适合演示和简历展示。</span>
+        </aside>
+      </div>
+    </section>
+
+    <section class="workspace query-toggle-panel" id="queryView" hidden>
+      <div class="panel wide">
+        <div class="query-panel-header">
+          <h2>患者检索</h2>
+          <button class="query-panel-close-btn" id="queryPanelCloseBtn" type="button">✕ 收起</button>
+        </div>
+        <div class="panel-body">
+      <section class="context-board">
+        <article class="panel context-card">
+          <div class="stage-copy">
+            <h2>快捷操作</h2>
+            <p>这里保留患者上下文相关动作，不把维护型表单放到主视线里。</p>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="issueTokenBtn" type="button">为当前患者签发 token</button>
+            <button class="warn" id="deleteCurrentPatientBtn" type="button">删除当前患者</button>
+            <button class="warn" id="clearContextBtn" type="button">清空当前上下文</button>
+          </div>
+          <div id="contextStatus" class="status"></div>
+        </article>
+
+        <article class="panel context-card">
+          <div class="stage-copy">
+            <h2>使用建议</h2>
+            <p>把检索与聊天拆开后，页面会更像患者服务入口，而不是接口调试台。</p>
+          </div>
+          <div class="meta">
+            <div>1. 先在 Query 里查询患者并带入当前上下文</div>
+            <div>2. 用快速读取按钮查看主档、病历和就诊记录</div>
+            <div>3. 切到聊天页面继续问诊式追问</div>
+          </div>
+        </article>
+      </section>
+
+      <details class="panel wide query-search-drawer" id="querySearchDrawer">
+        <summary>查询患者</summary>
+        <div class="panel-body">
+          <section class="query-stage">
+            <article class="query-shell-inner">
+              <div class="stage-copy" style="margin-bottom:12px">
+                <h2>患者检索</h2>
+                <p>面向患者信息查询的主入口。查询成功后会自动把第一位患者设为当前上下文。</p>
+              </div>
+              <form id="patientQueryForm" class="form-grid">
+                <label>
+                  院区 ID
+                  <input name="hospital_id" value="hospital-a" required />
+                </label>
+                <label>
+                  患者编号
+                  <input name="patient_code" placeholder="可选" />
+                </label>
+                <label>
+                  手机号
+                  <input name="phone" placeholder="可选" />
+                </label>
+                <div class="actions full">
+                  <button class="primary" type="submit">查询患者</button>
+                </div>
+              </form>
+              <div class="hint">查询成功后会自动把第一位患者带入当前上下文。</div>
+              <div id="patientQueryStatus" class="status"></div>
+            </article>
+
+            <article class="query-shell-inner">
+              <div class="stage-copy" style="margin-bottom:12px">
+                <h2>快速读取患者资料</h2>
+                <p>带入 patient_id 后，按主档、病历、就诊、聚合画像维度读取。</p>
+              </div>
+              <form id="lookupForm" class="form-grid">
+                <label class="full">
+                  患者 ID
+                  <input name="patient_id" id="lookupPatientId" required />
+                </label>
+                <div class="actions full">
+                  <button class="secondary" type="button" id="getPatientBtn">读取患者主档</button>
+                  <button class="secondary" type="button" id="getMedicalBtn">读取病历列表</button>
+                  <button class="secondary" type="button" id="getVisitBtn">读取就诊列表</button>
+                  <button class="primary" type="button" id="getProfileBtn">读取聚合画像</button>
+                </div>
+              </form>
+              <div id="lookupStatus" class="status"></div>
+            </article>
+          </section>
+        </div>
+      </details>
+
+      <article class="panel answer-stage">
+        <div class="stage-head">
+          <div class="stage-copy">
+            <h2>最新回答与播报</h2>
+            <p>这里展示最近一次 Query 或 Chat 生成的回答，也可以直接播报给患者听。</p>
+          </div>
+          <span class="chip" id="lastAction">等待操作</span>
+        </div>
+        <div id="answerBox" class="answer-box">暂无回答</div>
+        <div class="answer-actions">
+          <button class="primary" type="button" id="playAnswerBtn">播放播报</button>
+          <button class="secondary" type="button" id="stopAnswerBtn">停止播报</button>
+        </div>
+        <div class="speech-mode-row" aria-label="语音播报设置">
+          <button class="speech-mode-btn" type="button" data-speech-mode="browser">浏览器播报</button>
+          <button class="speech-mode-btn" type="button" data-speech-mode="tts">后端 TTS</button>
+          <span class="speech-mode-note">优先使用浏览器语音合成，不可用时自动切换。</span>
+        </div>
+        <div id="speechStatus" class="status"></div>
+        <audio id="answerAudioPlayer" class="speech-inline" controls></audio>
+        <div class="hint">支持浏览器语音合成和后端 TTS，当前回答和 Chat 消息都可以直接播报。</div>
+      </article>
+
+      <details class="panel wide">
+        <summary>原始接口返回</summary>
+        <div class="panel-body">
+          <div class="debug-summary">这里保留调试信息，默认收起，不再作为主界面核心区域。</div>
+          <pre id="output">{
+  "message": "页面已就绪，请开始测试。"
+}</pre>
+        </div>
+      </details>
+
+      <details class="panel wide admin-drawer">
+        <summary>患者管理工作台</summary>
+        <div class="panel-body">
+          <div class="admin-intro">新增患者、补病历、写就诊记录这些维护型能力统一收纳在这里。默认收起，避免它们抢占患者检索和聊天问答的主视觉。</div>
+          <section class="grid">
+            <details class="panel">
+              <summary>新增患者</summary>
+              <div class="panel-body">
+                <div class="actions">
+                  <button class="secondary" id="fillPreset1Btn" type="button">填充示例患者 A</button>
+                  <button class="secondary" id="fillPreset2Btn" type="button">填充示例患者 B</button>
+                  <button class="secondary" id="fillPreset3Btn" type="button">填充示例患者 C</button>
+                </div>
+                <div class="hint">可以先点上面的示例按钮再创建，这样不会总是生成同样的张三和同样的编号。</div>
+                <form id="patientForm" class="form-grid">
+                <label>
+                  院区 ID
+                  <input name="hospital_id" value="hospital-a" required />
+                </label>
+                <label>
+                  患者编号
+                  <input name="patient_code" value="P0001" required />
+                </label>
+                <label>
+                  姓名
+                  <input name="full_name" value="张三" required />
+                </label>
+                <label>
+                  性别
+                  <select name="gender">
+                    <option value="male">male</option>
+                    <option value="female">female</option>
+                    <option value="other">other</option>
+                  </select>
+                </label>
+                <label>
+                  出生日期
+                  <input type="date" name="birth_date" value="1988-05-10" />
+                </label>
+                <label>
+                  手机号
+                  <input name="phone" value="13800138000" />
+                </label>
+                <label class="full">
+                  身份证号
+                  <input name="id_number" value="310101198805100011" />
+                </label>
+                <label class="full">
+                  地址
+                  <input name="address" value="上海市浦东新区" />
+                </label>
+                <label>
+                  紧急联系人
+                  <input name="emergency_contact_name" value="李四" />
+                </label>
+                <label>
+                  紧急联系人电话
+                  <input name="emergency_contact_phone" value="13900139000" />
+                </label>
+                <label>
+                  血型
+                  <input name="blood_type" value="A" />
+                </label>
+                <label class="full">
+                  过敏史
+                  <textarea name="allergy_history">青霉素过敏</textarea>
+                </label>
+                <label class="full">
+                  家族史
+                  <textarea name="family_history">父亲有高血压</textarea>
+                </label>
+                <label class="full">
+                  备注
+                  <textarea name="notes">偏好简短沟通</textarea>
+                </label>
+                <div class="actions full">
+                  <button class="primary" type="submit">创建患者</button>
+                </div>
+                </form>
+                <div id="patientStatus" class="status"></div>
+              </div>
+            </details>
+
+            <details class="panel">
+              <summary>新增病历</summary>
+              <div class="panel-body">
+                <form id="medicalRecordForm" class="form-grid">
+                <label class="full">
+                  患者 ID
+                  <input name="patient_id" id="medicalPatientId" required />
+                </label>
+                <label>
+                  病历类型
+                  <select name="record_type">
+                    <option value="outpatient">outpatient</option>
+                    <option value="inpatient">inpatient</option>
+                    <option value="report">report</option>
+                  </select>
+                </label>
+                <label>
+                  标题
+                  <input name="title" value="高血压门诊复诊" required />
+                </label>
+                <label>
+                  科室
+                  <input name="department" value="心内科" />
+                </label>
+                <label>
+                  医生
+                  <input name="doctor_name" value="王医生" />
+                </label>
+                <label class="full">
+                  主诉
+                  <textarea name="chief_complaint">头晕两周</textarea>
+                </label>
+                <label class="full">
+                  现病史
+                  <textarea name="present_illness">既往高血压，近期停药</textarea>
+                </label>
+                <label class="full">
+                  诊断
+                  <textarea name="diagnosis">原发性高血压</textarea>
+                </label>
+                <label class="full">
+                  治疗方案
+                  <textarea name="treatment_plan">恢复降压药并监测血压</textarea>
+                </label>
+                <label class="full">
+                  用药信息
+                  <textarea name="medications">缬沙坦 80mg qd</textarea>
+                </label>
+                <div class="actions full">
+                  <button class="primary" type="submit">新增病历</button>
+                </div>
+                </form>
+                <div id="medicalStatus" class="status"></div>
+              </div>
+            </details>
+
+            <details class="panel">
+              <summary>新增就诊记录</summary>
+              <div class="panel-body">
+                <form id="visitForm" class="form-grid">
+                <label class="full">
+                  患者 ID
+                  <input name="patient_id" id="visitPatientId" required />
+                </label>
+                <label>
+                  就诊类型
+                  <select name="visit_type">
+                    <option value="outpatient">outpatient</option>
+                    <option value="emergency">emergency</option>
+                    <option value="follow_up">follow_up</option>
+                  </select>
+                </label>
+                <label>
+                  科室
+                  <input name="department" value="心内科" required />
+                </label>
+                <label>
+                  医生
+                  <input name="doctor_name" value="王医生" />
+                </label>
+                <label>
+                  院区
+                  <input name="campus" value="B院区" />
+                </label>
+                <label>
+                  就诊状态
+                  <input name="visit_status" value="completed" />
+                </label>
+                <label class="full">
+                  主诉
+                  <textarea name="chief_complaint">头晕、降压药吃完</textarea>
+                </label>
+                <label class="full">
+                  就诊摘要
+                  <textarea name="visit_summary">建议继续服药，完善血压监测</textarea>
+                </label>
+                <label class="full">
+                  复诊计划
+                  <textarea name="follow_up_plan">7天后复诊</textarea>
+                </label>
+                <div class="actions full">
+                  <button class="primary" type="submit">新增就诊记录</button>
+                </div>
+                </form>
+                <div id="visitStatus" class="status"></div>
+              </div>
+            </details>
+
+            <details class="panel">
+              <summary>图文问答说明</summary>
+              <div class="panel-body">
+                <div class="hint">发送消息输入框已经移动到聊天页面底部。你仍然可以在对话框下方附带图片，系统会自动切换为图文联合问答。</div>
+              </div>
+            </details>
+          </section>
+        </div>
+      </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="generalView">
+      <section class="chat-stage">
+        <aside class="chat-sidebar">
+          <article class="panel context-card" id="generalSidebarCard">
+            <div class="stage-copy" style="margin-bottom:8px">
+              <h2>最近对话</h2>
+              <p>通用聊天不需要登录，打开页面后可以直接提问。</p>
+            </div>
+            <div class="actions sidebar-primary-action">
+              <button class="primary" id="generalNewChatBtn" type="button">新建对话</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:6px">
+              <span style="font-size:13px;font-weight:700;color:var(--subtle)">对话列表</span>
+              <span class="chip" id="generalRecentCount">0</span>
+            </div>
+            <div id="generalRecentList" class="general-recent-list"></div>
+          </article>
+        </aside>
+
+        <div class="chat-main-col">
+          <article class="panel chat-panel" id="generalChatPanel">
+            <div class="chat-transcript-section">
+              <div id="generalChatTranscript" class="chat-window chat-transcript-pane">
+                <div class="chat-empty">可以直接开始提问。</div>
+              </div>
+            </div>
+          </article>
+
+          <form id="generalChatForm" class="panel form-grid chat-composer chat-input-pane">
+            <label class="full">
+              <textarea name="question" placeholder="输入消息，Enter 发送…" required></textarea>
+            </label>
+            <div class="chat-composer-actions full">
+              <div class="actions">
+                <button class="primary" id="generalSendBtn" type="submit">发送</button>
+              </div>
+            </div>
+            <div id="generalChatStatus" class="status full"></div>
+          </form>
+        </div>
+      </section>
+    </section>
+
+    <section class="workspace" id="chatView" hidden>
+      <!-- 登录 Modal：只属于记忆聊天，进入通用聊天时不会出现 -->
+      <div class="login-modal-backdrop" id="loginModalBackdrop" hidden>
+        <div class="login-modal panel">
+          <div class="stage-head">
+            <h2>绑定个人信息</h2>
+            <button class="modal-close-btn" id="loginModalCloseBtn" type="button" aria-label="关闭">✕</button>
+          </div>
+          <p style="color:var(--subtle);font-size:13px;margin:4px 0 14px">填写姓名和电话，系统识别就诊记录后开启记忆聊天。</p>
+          <div class="form-grid">
+            <label>
+              姓名
+              <input id="profileNameInput" placeholder="例如：陈阿姨" />
+            </label>
+            <label>
+              电话
+              <input id="profilePhoneInput" placeholder="例如：13633334444" />
+            </label>
+            <div class="actions full">
+              <button class="primary" id="applyProfileBtn" type="button">绑定并登录</button>
+              <button class="secondary" id="clearProfileBtn" type="button">清空</button>
+            </div>
+          </div>
+          <div id="profileLoginStatus" class="status full"></div>
+        </div>
+      </div>
+
+      <section class="chat-stage">
+        <aside class="chat-sidebar">
+          <article class="panel context-card memory-login-card">
+            <div class="stage-copy" style="margin-bottom:8px">
+              <h2>记忆聊天</h2>
+              <p id="chatSubModeHint">记忆聊天需要先绑定个人信息。未登录时不会自动弹窗，请点击下方按钮登录。</p>
+            </div>
+            <div class="memory-login-status" id="memoryLoginStatus">
+              <span class="chip" id="memoryLoginChip">未登录</span>
+              <button class="secondary" id="openLoginModalBtn" type="button" style="font-size:12px;padding:6px 12px">登录</button>
+            </div>
+          </article>
+
+          <article class="panel context-card" id="memorySidebarCard">
+            <div class="stage-copy" style="margin-bottom:8px">
+              <h2>最近会话</h2>
+            </div>
+            <div class="actions sidebar-primary-action">
+              <button class="primary" id="newSessionBtn" type="button">新建会话</button>
+            </div>
+            <label class="full" style="margin-top:8px">
+              <select id="chatSessionSelect"></select>
+            </label>
+            <div class="actions">
+              <button class="secondary" id="loadSelectedSessionBtn" type="button">加载</button>
+              <button class="warn" id="deleteSelectedSessionBtn" type="button">删除</button>
+            </div>
+            <details style="margin-top:12px">
+              <summary style="font-size:12px;color:var(--subtle);cursor:pointer;list-style:none">▸ 快速选择患者</summary>
+              <div class="form-grid compact" style="margin-top:8px">
+                <select id="patientQuickSelect" style="flex:1">
+                  <option value="">— 加载患者列表 —</option>
+                </select>
+                <button class="secondary" id="loadPatientListBtn" type="button">加载</button>
+              </div>
+              <div id="patientQuickStatus" class="status full"></div>
+            </details>
+          </article>
+        </aside>
+
+        <div class="chat-main-col">
+          <article class="panel chat-panel" id="chatPanel">
+            <div class="chat-transcript-section">
+              <div id="chatTranscript" class="chat-window chat-transcript-pane">
+                <div class="chat-empty">请先登录后再使用记忆聊天。</div>
+              </div>
+            </div>
+          </article>
+
+          <form id="multimodalForm" class="panel form-grid chat-composer chat-input-pane">
+            <label class="full">
+              <textarea name="question" placeholder="请输入问题，例如：我后续治疗应该注意什么？" required></textarea>
+            </label>
+            <div class="chat-composer-actions full">
+              <label class="inline-file">
+                图片
+                <input type="file" name="image" accept="image/*" id="imageFileInput" /><span id="imageFileName" class="image-file-name"></span>
+              </label>
+              <div class="actions">
+                <button class="primary" id="sendMessageBtn" type="button">发送</button>
+              </div>
+            </div>
+            <div id="multimodalStatus" class="status full"></div>
+          </form>
+
+          <details class="panel wide memory-debug-drawer">
+            <summary>Memory Debug</summary>
+            <div class="panel-body">
+              <div class="hint">显示本轮工作记忆、长期记忆和知识记忆注入情况。</div>
+              <div id="memoryDebugCards" class="memory-debug-cards">
+                <div class="memory-debug-empty">发送一条记忆聊天后，这里会显示中文卡片摘要。</div>
+              </div>
+              <details class="memory-debug-raw">
+                <summary>原始 JSON</summary>
+                <pre id="memoryDebugOutput">{
+  "message": "发送一条记忆聊天后，这里会显示 memory debug。"
+}</pre>
+              </details>
+            </div>
+          </details>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      patientId: "",
+      hospitalId: "",
+      authToken: "",
+      sessionId: "",
+      generalSessionId: "",
+      chatMode: localStorage.getItem("agentTesterChatMode") || "general",
+      profileName: "",
+      profilePhone: "",
+      lastSpeechText: "",
+      speechMode: localStorage.getItem("agentTesterSpeechMode") || "browser",
+      chatMessages: [],
+      generalChatMessages: [],
+      shortTermMessages: [],
+      shortTermMemory: null,
+      chatSessions: [],
+      generalRecentSessions: [],
+    };
+
+    const patientPresets = [
+      {
+        hospital_id: "hospital-a",
+        patient_code: "P1001",
+        full_name: "Zhang Hai",
+        gender: "male",
+        birth_date: "1979-03-12",
+        phone: "13911112222",
+        id_number: "310101197903120015",
+        address: "Shanghai Xuhui",
+        emergency_contact_name: "Wang Fang",
+        emergency_contact_phone: "13911113333",
+        blood_type: "A",
+        allergy_history: "No known drug allergy",
+        family_history: "Father has hypertension",
+        notes: "Focus on blood pressure and sleep",
+      },
+      {
+        hospital_id: "hospital-a",
+        patient_code: "P1002",
+        full_name: "Li Min",
+        gender: "female",
+        birth_date: "1986-11-25",
+        phone: "13722223333",
+        id_number: "310101198611250028",
+        address: "Shanghai Yangpu",
+        emergency_contact_name: "Zhao Qiang",
+        emergency_contact_phone: "13722224444",
+        blood_type: "B",
+        allergy_history: "Penicillin allergy",
+        family_history: "Mother has diabetes",
+        notes: "Prefers conclusion first",
+      },
+      {
+        hospital_id: "hospital-a",
+        patient_code: "P1003",
+        full_name: "Chen Ayi",
+        gender: "female",
+        birth_date: "1968-07-08",
+        phone: "13633334444",
+        id_number: "310101196807080042",
+        address: "Shanghai Pudong",
+        emergency_contact_name: "Liu Lan",
+        emergency_contact_phone: "13633335555",
+        blood_type: "O",
+        allergy_history: "Seafood allergy",
+        family_history: "Family coronary disease history",
+        notes: "Good for continuous chat testing",
+      },
+    ];
+
+    const output = document.getElementById("output");
+    const memoryDebugCards = document.getElementById("memoryDebugCards");
+    const memoryDebugOutput = document.getElementById("memoryDebugOutput");
+    const answerBox = document.getElementById("answerBox");
+    const lastAction = document.getElementById("lastAction");
+    const currentPatientId = document.getElementById("currentPatientId");
+    const currentHospitalId = document.getElementById("currentHospitalId");
+    const currentAuthToken = document.getElementById("currentAuthToken");
+    const currentSessionId = document.getElementById("currentSessionId");
+    const queryPatientBadge = document.getElementById("queryPatientBadge");
+    const querySessionBadge = document.getElementById("querySessionBadge");
+    const chatTranscript = document.getElementById("chatTranscript");
+    const chatPanel = document.getElementById("chatPanel");
+    const chatSessionSelect = document.getElementById("chatSessionSelect");
+    const deleteSelectedSessionBtn = document.getElementById("deleteSelectedSessionBtn");
+    const toggleAdvancedChatBtn = document.getElementById("toggleAdvancedChatBtn");
+    const chatAdvancedFields = document.getElementById("chatAdvancedFields");
+    const sendMessageBtn = document.getElementById("sendMessageBtn");
+    const questionInput = document.querySelector('#multimodalForm textarea[name="question"]');
+    const imageFileInput = document.getElementById("imageFileInput");
+    const imageFileName = document.getElementById("imageFileName");
+    const profileNameInput = document.getElementById("profileNameInput");
+    const profilePhoneInput = document.getElementById("profilePhoneInput");
+    const applyProfileBtn = document.getElementById("applyProfileBtn");
+    const profileLoginStatus = document.getElementById("profileLoginStatus");
+    const clearProfileBtn = document.getElementById("clearProfileBtn");
+    const patientQuickSelect = document.getElementById("patientQuickSelect");
+    const loadPatientListBtn = document.getElementById("loadPatientListBtn");
+    const patientQuickStatus = document.getElementById("patientQuickStatus");
+    const generalChatTranscript = document.getElementById("generalChatTranscript");
+    const generalChatForm = document.getElementById("generalChatForm");
+    const generalSendBtn = document.getElementById("generalSendBtn");
+    const generalQuestionInput = document.querySelector('#generalChatForm textarea[name="question"]');
+    const generalNewChatBtn = document.getElementById("generalNewChatBtn");
+    const generalChatStatus = document.getElementById("generalChatStatus");
+    const generalRecentList = document.getElementById("generalRecentList");
+    const generalRecentCount = document.getElementById("generalRecentCount");
+    const memoryLoginHint = null; // removed — replaced by chatSubModeHint
+    const memoryLoginChip = document.getElementById("memoryLoginChip");
+    const generalModeBtn = null;
+    const memoryModeBtn = null;
+    const generalChatCard = null;
+    const queryView = document.getElementById("queryView");
+    const generalView = document.getElementById("generalView");
+    const chatView = document.getElementById("chatView");
+    const queryViewBtn = document.getElementById("toggleQueryPanelBtn");
+    const chatViewBtn = document.getElementById("chatViewBtn");
+    const memoryViewBtn = document.getElementById("memoryViewBtn");
+    const subModeGeneralBtn = document.getElementById("subModeGeneralBtn");
+    const subModeMemoryBtn = document.getElementById("subModeMemoryBtn");
+    const chatSubModeHint = document.getElementById("chatSubModeHint");
+    const generalSidebarCard = document.getElementById("generalSidebarCard");
+    const memorySidebarCard = document.getElementById("memorySidebarCard");
+    const generalInputPane = document.getElementById("generalChatForm");
+    const memoryInputPane = document.getElementById("multimodalForm");
+    const contextStorageKey = "agentTesterCurrentContext";
+    const SHORT_TERM_ROUND_LIMIT = 5;
+
+    function sessionStorageKey(patientId) {
+      return patientId ? `agentTesterSession:${patientId}` : "agentTesterSession:anonymous";
+    }
+
+    function chatStorageKey(sessionId) {
+      return sessionId ? `agentTesterChat:${sessionId}` : "";
+    }
+
+    function generalChatStorageKey(sessionId) {
+      return sessionId ? `agentTesterGeneralChat:${sessionId}` : "";
+    }
+
+    function generalSessionStorageKey() {
+      return "agentTesterGeneralSessionId";
+    }
+
+    function generalRecentStorageKey() {
+      return "agentTesterGeneralRecentSessions";
+    }
+
+    function readStoredGeneralRecentSessions() {
+      try {
+        const raw = localStorage.getItem(generalRecentStorageKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === "object" && item.session_id) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function persistGeneralRecentSessions() {
+      try {
+        localStorage.setItem(generalRecentStorageKey(), JSON.stringify(state.generalRecentSessions.slice(0, 12)));
+      } catch (_) {}
+      if (generalRecentCount) {
+        generalRecentCount.textContent = String(state.generalRecentSessions.length);
+      }
+    }
+
+    function buildGeneralRecentSnapshot(sessionId = state.generalSessionId, messages = state.generalChatMessages) {
+      const list = Array.isArray(messages) ? messages : [];
+      const lastUserMessage = [...list].reverse().find((item) => item?.role === "user" && String(item?.content || "").trim()) || null;
+      const preview = lastUserMessage ? String(lastUserMessage.content || "").trim() : "新建对话";
+      const now = new Date().toISOString();
+      return {
+        session_id: sessionId,
+        created_at: now,
+        updated_at: now,
+        latest_message_at: lastUserMessage?.created_at || lastUserMessage?.createdAt || now,
+        latest_message_preview: preview,
+        message_count: list.length,
+      };
+    }
+
+    function upsertGeneralRecentSession(sessionId = state.generalSessionId, snapshot = {}) {
+      if (!sessionId) {
+        return;
+      }
+      const now = new Date().toISOString();
+      const existing = state.generalRecentSessions.find((item) => item.session_id === sessionId);
+      const merged = {
+        session_id: sessionId,
+        created_at: existing?.created_at || snapshot.created_at || now,
+        updated_at: now,
+        latest_message_at: snapshot.latest_message_at || existing?.latest_message_at || now,
+        latest_message_preview: snapshot.latest_message_preview ?? existing?.latest_message_preview ?? "新建对话",
+        message_count: snapshot.message_count ?? existing?.message_count ?? 0,
+      };
+      state.generalRecentSessions = [
+        merged,
+        ...state.generalRecentSessions.filter((item) => item.session_id !== sessionId),
+      ].slice(0, 12);
+      persistGeneralRecentSessions();
+      renderGeneralRecentSessions();
+    }
+
+    function deleteGeneralRecentSession(sessionId) {
+      const target = String(sessionId || "").trim();
+      if (!target) {
+        return;
+      }
+      localStorage.removeItem(generalChatStorageKey(target));
+      state.generalRecentSessions = state.generalRecentSessions.filter((item) => item.session_id !== target);
+      persistGeneralRecentSessions();
+
+      if (state.generalSessionId === target) {
+        const nextSessionId = state.generalRecentSessions[0]?.session_id || "";
+        if (nextSessionId) {
+          state.generalSessionId = nextSessionId;
+          localStorage.setItem(generalSessionStorageKey(), nextSessionId);
+          state.generalChatMessages = readStoredGeneralChatMessages(nextSessionId);
+          renderGeneralChat(state.generalChatMessages.length ? "" : "可以直接开始提问，也可以新建一段独立对话。");
+          upsertGeneralRecentSession(nextSessionId, buildGeneralRecentSnapshot(nextSessionId, state.generalChatMessages));
+        } else {
+          state.generalSessionId = generateSessionId();
+          localStorage.setItem(generalSessionStorageKey(), state.generalSessionId);
+          state.generalChatMessages = [];
+          persistGeneralChatMessages();
+          renderGeneralChat("可以直接开始提问，也可以新建一段独立对话。");
+        }
+      }
+
+      renderGeneralRecentSessions();
+      if (generalQuestionInput) {
+        generalQuestionInput.focus();
+      }
+    }
+
+    function renderGeneralRecentSessions() {
+      if (!generalRecentList) {
+        return;
+      }
+      if (!state.generalRecentSessions.length) {
+        generalRecentList.innerHTML = `<div class="general-recent-empty">暂无最近对话，点击“新建对话”开始一个新的通用聊天。</div>`;
+        if (generalRecentCount) {
+          generalRecentCount.textContent = "0";
+        }
+        return;
+      }
+      if (generalRecentCount) {
+        generalRecentCount.textContent = String(state.generalRecentSessions.length);
+      }
+      generalRecentList.innerHTML = state.generalRecentSessions.map((item) => {
+        const active = item.session_id === state.generalSessionId;
+        const preview = String(item.latest_message_preview || "新建对话").trim();
+        const time = formatTime(item.latest_message_at || item.updated_at || item.created_at);
+        return `
+          <div class="general-recent-item ${active ? "active" : ""}" data-session-id="${escapeHtml(item.session_id)}">
+            <button type="button" class="general-recent-select" data-action="select" data-session-id="${escapeHtml(item.session_id)}">
+              <span class="general-recent-preview">${escapeHtml(preview)}</span>
+              <span class="general-recent-time">${escapeHtml(time || "")}</span>
+            </button>
+            <button type="button" class="general-recent-delete" data-action="delete" data-session-id="${escapeHtml(item.session_id)}" aria-label="删除该对话">&times;</button>
+          </div>
+        `;
+      }).join("");
+
+      generalRecentList.querySelectorAll("[data-action='select']").forEach((button) => {
+        button.addEventListener("click", () => {
+          const sessionId = String(button.getAttribute("data-session-id") || "").trim();
+          if (!sessionId) {
+            return;
+          }
+          selectGeneralSession(sessionId);
+        });
+      });
+
+      generalRecentList.querySelectorAll("[data-action='delete']").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const sessionId = String(button.getAttribute("data-session-id") || "").trim();
+          if (!sessionId) {
+            return;
+          }
+          deleteGeneralRecentSession(sessionId);
+        });
+      });
+    }
+
+    function chatModeStorageKey() {
+      return "agentTesterChatMode";
+    }
+
+    function persistChatMessages() {
+      const key = chatStorageKey(state.sessionId);
+      if (!key) {
+        return;
+      }
+      const messages = Array.isArray(state.chatMessages)
+        ? state.chatMessages.slice(-20).map((item) => ({
+            role: item.role,
+            content: item.content,
+            created_at: item.created_at || item.createdAt || new Date().toISOString(),
+          }))
+        : [];
+      localStorage.setItem(key, JSON.stringify(messages));
+    }
+
+    function persistGeneralChatMessages() {
+      const key = generalChatStorageKey(state.generalSessionId);
+      if (!key) {
+        return;
+      }
+      const messages = Array.isArray(state.generalChatMessages)
+        ? state.generalChatMessages.slice(-24).map((item) => ({
+            role: item.role,
+            content: item.content,
+          created_at: item.created_at || item.createdAt || new Date().toISOString(),
+        }))
+        : [];
+      localStorage.setItem(key, JSON.stringify(messages));
+      localStorage.setItem(generalSessionStorageKey(), state.generalSessionId || "");
+      upsertGeneralRecentSession(state.generalSessionId, buildGeneralRecentSnapshot(state.generalSessionId, state.generalChatMessages));
+    }
+
+    function readStoredChatMessages(sessionId) {
+      const key = chatStorageKey(sessionId);
+      if (!key) {
+        return [];
+      }
+      try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function readStoredGeneralChatMessages(sessionId) {
+      const key = generalChatStorageKey(sessionId);
+      if (!key) {
+        return [];
+      }
+      try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function restoreStoredChatMessages(emptyMessage = "") {
+      state.chatMessages = readStoredChatMessages(state.sessionId);
+      resetShortTermMemory();
+      renderChat(state.chatMessages.length ? "" : emptyMessage);
+      const lastAssistant = [...state.chatMessages].reverse().find((item) => item.role === "assistant");
+      if (lastAssistant && lastAssistant.content) {
+        setAnswer(lastAssistant.content);
+      }
+      renderSessionOptions();
+    }
+
+    function restoreStoredGeneralChatMessages(emptyMessage = "") {
+      if (!state.generalSessionId) {
+        state.generalSessionId = localStorage.getItem(generalSessionStorageKey())
+          || state.generalRecentSessions[0]?.session_id
+          || generateSessionId();
+      }
+      state.generalChatMessages = readStoredGeneralChatMessages(state.generalSessionId);
+      renderGeneralChat(state.generalChatMessages.length ? "" : emptyMessage);
+      upsertGeneralRecentSession(state.generalSessionId, buildGeneralRecentSnapshot(state.generalSessionId, state.generalChatMessages));
+    }
+
+    function resetShortTermMemory() {
+      state.shortTermMessages = [];
+      state.shortTermMemory = null;
+    }
+
+    function setStructuredShortTermMemory(memory) {
+      state.shortTermMemory = memory && typeof memory === "object" ? memory : null;
+    }
+
+    function buildShortTermMemory(roundLimit = SHORT_TERM_ROUND_LIMIT) {
+      const recentMessages = state.shortTermMessages.slice(-(roundLimit * 2));
+      const latestUser = [...recentMessages].reverse().find((item) => item.role === "user" && String(item.content || "").trim());
+      return {
+        recent_messages: recentMessages.map((item) => ({
+          role: item.role || "assistant",
+          content: String(item.content || "").trim(),
+        })).filter((item) => item.content),
+        session_state: {
+          intent: "",
+          current_topic: latestUser ? String(latestUser.content || "").trim() : "",
+          goal: latestUser ? String(latestUser.content || "").trim() : "",
+          constraints: [],
+          confirmed_facts: [],
+          open_questions: [],
+          identity_status: "unknown",
+          claimed_name: state.profileName || null,
+          claimed_birth_year: null,
+          confirmed_patient_id: state.patientId || null,
+          confirmed_patient_name: null,
+          identity_source: null,
+          identity_candidates: [],
+        },
+        active_entities: {
+          drugs: [],
+          symptoms: [],
+          tests: [],
+          metrics: [],
+        },
+        risk_signals: {
+          red_flags: [],
+          medication_flags: [],
+          monitoring_flags: [],
+        },
+      };
+    }
+
+    function buildShortTermSummary(messages) {
+      const recentMessages = Array.isArray(messages) ? messages : [];
+      const latestUser = [...recentMessages].reverse().find((item) => item.role === "user" && String(item.content || "").trim());
+      const latestAssistant = [...recentMessages].reverse().find((item) => item.role === "assistant" && String(item.content || "").trim());
+      const joined = recentMessages.map((item) => String(item.content || "")).join("\n");
+      const focusTags = [];
+      if (/[复诊复查随访]|follow-up|review/i.test(joined)) {
+        focusTags.push("复诊/随访");
+      }
+      if (/[血压头晕胸闷心悸]|blood pressure|dizzy|chest|palpitation/i.test(joined)) {
+        focusTags.push("症状/指标监测");
+      }
+      if (/[用药药物服药]|medication|medicine/i.test(joined)) {
+        focusTags.push("用药相关");
+      }
+      return [
+        "结构化状态摘要：",
+        `- 当前会话内短期记忆消息数：${recentMessages.length}`,
+        `- 最近用户关注：${latestUser ? String(latestUser.content || "").trim() : "无"}`,
+        `- 最近助手回应重点：${latestAssistant ? String(latestAssistant.content || "").trim() : "无"}`,
+        `- 当前关注标签：${focusTags.length ? focusTags.join("、") : "未提取到明显标签"}`,
+      ].join("\n");
+    }
+
+    function buildClientConversationContext(roundLimit = SHORT_TERM_ROUND_LIMIT) {
+      const rawMessages = state.shortTermMessages.slice(-(roundLimit * 2));
+      const profileBlock = (state.profileName || state.profilePhone)
+        ? `个人信息：\n- 姓名：${state.profileName || "未填写"}\n- 电话：${state.profilePhone || "未填写"}`
+        : "";
+      const rawBlock = rawMessages.map((item) => {
+        const role = item.role === "user" ? "User" : (item.role === "assistant" ? "Assistant" : "System");
+        const content = String(item.content || "").trim();
+        return content ? `${role}: ${content}` : "";
+      }).filter(Boolean).join("\n");
+      const summaryBlock = buildShortTermSummary(rawMessages);
+      return [profileBlock, rawBlock ? `最近原始消息：\n${rawBlock}` : "", summaryBlock].filter(Boolean).join("\n\n");
+    }
+
+    function normalizePersonalName(value) {
+      return String(value || "")
+        .trim()
+        .replace(/[，。,.!！？?、\s]+/g, "")
+        .replace(/^(我是|叫|我叫|本人|家属|患者)/, "")
+        .replace(/(阿姨|叔叔|大爷|大妈|阿伯|伯伯|姐姐|哥哥|妹妹|弟弟|老师|女士|先生|家属)$/, "");
+    }
+
+    function applyProfileState({ name = state.profileName, phone = state.profilePhone } = {}) {
+      state.profileName = String(name || "").trim();
+      state.profilePhone = String(phone || "").trim();
+      if (profileNameInput) {
+        profileNameInput.value = state.profileName;
+      }
+      if (profilePhoneInput) {
+        profilePhoneInput.value = state.profilePhone;
+      }
+      persistContext();
+    }
+
+    function normalizeAuthToken(value) {
+      const token = String(value || "").trim();
+      if (!token) {
+        return "";
+      }
+      const lowered = token.toLowerCase();
+      if (["string", "null", "none", "undefined", "nil", "set", "not set", "???", "???"].includes(lowered)) {
+        return "";
+      }
+      return token;
+    }
+
+    function looksLikeIssuedAuthToken(value) {
+      const token = normalizeAuthToken(value);
+      if (!token) {
+        return false;
+      }
+      const parts = token.split(".");
+      return parts.length === 2 && Boolean(parts[0]) && Boolean(parts[1]);
+    }
+
+    function persistContext() {
+      localStorage.setItem(contextStorageKey, JSON.stringify({
+        sessionId: state.sessionId,
+        patientId: state.patientId,
+        hospitalId: state.hospitalId,
+        authToken: state.authToken,
+        profileName: state.profileName,
+        profilePhone: state.profilePhone,
+      }));
+    }
+
+    function readStoredContext() {
+      try {
+        const raw = localStorage.getItem(contextStorageKey);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return {
+          sessionId: parsed && typeof parsed === "object" ? (parsed.sessionId || "") : "",
+          patientId: parsed && typeof parsed === "object" ? (parsed.patientId || "") : "",
+          hospitalId: parsed && typeof parsed === "object" ? (parsed.hospitalId || "") : "",
+          authToken: parsed && typeof parsed === "object" ? (parsed.authToken || "") : "",
+          profileName: parsed && typeof parsed === "object" ? (parsed.profileName || "") : "",
+          profilePhone: parsed && typeof parsed === "object" ? (parsed.profilePhone || "") : "",
+        };
+      } catch (_) {
+        return { sessionId: "", patientId: "", hospitalId: "", authToken: "", profileName: "", profilePhone: "" };
+      }
+    }
+
+    function renderSessionOptions() {
+      if (!chatSessionSelect) {
+        return;
+      }
+
+      const options = [];
+      let sessions = Array.isArray(state.chatSessions) ? [...state.chatSessions] : [];
+      if (state.sessionId && !sessions.some((item) => item.session_id === state.sessionId)) {
+        sessions.unshift({
+          session_id: state.sessionId,
+          message_count: state.chatMessages.length,
+          latest_message_at: state.chatMessages.length ? state.chatMessages[state.chatMessages.length - 1].created_at : "",
+          latest_message_preview: state.chatMessages.length ? state.chatMessages[state.chatMessages.length - 1].content : "当前会话",
+        });
+      }
+
+      if (!state.patientId) {
+        options.push({ value: "", label: "请先选择患者后再查看已保存会话" });
+      } else if (!sessions.length) {
+        options.push({ value: state.sessionId || "", label: state.sessionId ? `当前新会话 | ${state.sessionId}` : "暂无已保存会话" });
+      } else {
+        options.push(...sessions.map((item) => {
+          const latestAt = formatTime(item.latest_message_at);
+          const preview = item.latest_message_preview ? ` | ${item.latest_message_preview.slice(0, 28)}` : "";
+          return {
+            value: item.session_id,
+            label: `${latestAt || "未记录时间"} | ${item.message_count || 0} 条消息${preview}`,
+          };
+        }));
+      }
+
+      chatSessionSelect.innerHTML = "";
+      options.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+        chatSessionSelect.appendChild(option);
+      });
+      chatSessionSelect.disabled = !state.patientId;
+      if (state.sessionId) {
+        chatSessionSelect.value = state.sessionId;
+      }
+    }
+
+    function selectSession(sessionId) {
+      state.sessionId = (sessionId || "").trim();
+      if (!state.patientId) {
+        restoreStoredChatMessages("请开始对话。");
+      }
+      updateSessionDisplays();
+    }
+
+    function generateSessionId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `session-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+    }
+
+    function escapeHtml(text) {
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function updateSessionDisplays() {
+      if (currentSessionId) {
+        currentSessionId.textContent = state.sessionId || "未设置";
+      }
+      if (querySessionBadge) {
+        querySessionBadge.textContent = state.sessionId || "未设置";
+      }
+      if (state.sessionId) {
+        localStorage.setItem(sessionStorageKey(state.patientId), state.sessionId);
+      }
+      renderSessionOptions();
+      persistContext();
+    }
+
+    function ensureSessionId(forceNew = false) {
+      if (forceNew || !state.sessionId) {
+        const stored = !forceNew ? localStorage.getItem(sessionStorageKey(state.patientId)) : "";
+        state.sessionId = stored || generateSessionId();
+      }
+      updateSessionDisplays();
+      return state.sessionId;
+    }
+
+    function setAnswer(text) {
+      answerBox.textContent = text || "暂无回答";
+    }
+
+    function syncLatestMemoryAnswer(text, actionLabel = "记忆聊天最新回答") {
+      const normalized = stripMarkdownMarkers(String(text || "")).trim();
+      setAnswer(normalized || "暂无回答");
+      state.lastSpeechText = normalized || "";
+      if (lastAction) {
+        lastAction.textContent = actionLabel;
+      }
+    }
+
+    function keepChatInView() {
+      if (!chatTranscript) {
+        return;
+      }
+      requestAnimationFrame(() => {
+        chatTranscript.style.scrollBehavior = 'smooth';
+        chatTranscript.scrollTop = chatTranscript.scrollHeight;
+        chatTranscript.addEventListener('scrollend', () => {
+          chatTranscript.style.scrollBehavior = '';
+        }, { once: true });
+      });
+    }
+
+    function setSendButtonState(isSending) {
+      if (!sendMessageBtn) return;
+      sendMessageBtn.disabled = isSending;
+      sendMessageBtn.textContent = isSending ? "\u53d1\u9001\u4e2d..." : "\u53d1\u9001\u6d88\u606f";
+    }
+
+    function stripMarkdownMarkers(text) {
+      const value = String(text || "");
+      return value
+        .replace(/```[\s\S]*?```/g, (block) => block.replace(/```/g, ""))
+        .replace(/`([^`]*)`/g, "$1")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/__([^_]+)__/g, "$1")
+        .replace(/_([^_]+)_/g, "$1")
+        .replace(/^#{1,6}\s*/gm, "")
+        .replace(/^\s*[-*+]\s+/gm, "")
+        .replace(/^\s*\d+\.\s+/gm, "")
+        .trim();
+    }
+
+    function setChatAdvancedOpen(isOpen) {
+      if (!toggleAdvancedChatBtn || !chatAdvancedFields) {
+        return;
+      }
+      chatAdvancedFields.hidden = !isOpen;
+      toggleAdvancedChatBtn.setAttribute("aria-expanded", String(isOpen));
+      toggleAdvancedChatBtn.textContent = isOpen ? "\u6536\u8d77\u9ad8\u7ea7\u914d\u7f6e" : "\u5c55\u5f00\u9ad8\u7ea7\u914d\u7f6e";
+    }
+
+    function setWorkspaceNavActive(view) {
+      const isGeneral = view === "general";
+      const isMemory = view === "memory";
+      if (chatViewBtn) chatViewBtn.classList.toggle("active", isGeneral);
+      if (memoryViewBtn) memoryViewBtn.classList.toggle("active", isMemory);
+      if (queryViewBtn) queryViewBtn.classList.toggle("active", view === "query");
+    }
+
+    function switchWorkspace(view) {
+      const target = view === "chat" ? "memory" : (view || "general");
+      if (target === "query") {
+        if (generalView) generalView.hidden = true;
+        if (chatView) chatView.hidden = true;
+        openQueryPanel();
+        setWorkspaceNavActive("query");
+        localStorage.setItem("agentTesterWorkspaceView", "query");
+        return;
+      }
+      closeQueryPanel();
+      setChatSubMode(target === "memory" ? "memory" : "general");
+      renderGeneralRecentSessions();
+    }
+
+    // 在两个一级页面之间切换：通用聊天 ↔ 记忆聊天
+    function setChatSubMode(mode) {
+      const isMemory = mode === "memory";
+      const loggedIn = Boolean(state.patientId);
+      state.chatMode = isMemory ? "memory" : "general";
+      localStorage.setItem(chatModeStorageKey(), state.chatMode);
+      localStorage.setItem("agentTesterWorkspaceView", state.chatMode);
+
+      if (generalView) generalView.hidden = isMemory;
+      if (chatView) chatView.hidden = !isMemory;
+      setWorkspaceNavActive(isMemory ? "memory" : "general");
+
+      if (subModeGeneralBtn) subModeGeneralBtn.classList.toggle("active", !isMemory);
+      if (subModeMemoryBtn) subModeMemoryBtn.classList.toggle("active", isMemory);
+
+      const openBtn = document.getElementById("openLoginModalBtn");
+      if (openBtn) openBtn.textContent = loggedIn ? "切换账号" : "登录";
+      if (memoryLoginChip) {
+        memoryLoginChip.textContent = loggedIn ? (state.profileName || "已登录") : "未登录";
+      }
+      updateMemoryLoginHint(loggedIn
+        ? `已登录：${state.profileName || state.patientId}，可以继续记忆聊天。`
+        : "记忆聊天需要先绑定个人信息。未登录时不会自动弹窗，请点击登录。");
+
+      if (isMemory && !loggedIn && chatTranscript) {
+        chatTranscript.innerHTML = `<div class="chat-empty">请先登录后再使用记忆聊天。你可以点击左侧「登录」按钮来绑定个人信息。</div>`;
+      }
+    }
+
+    function setChatModeView(mode) {
+      setChatSubMode(mode);
+    }
+
+    function bindChatWheelBehavior() {
+      if (!chatTranscript) {
+        return;
+      }
+      chatTranscript.addEventListener("wheel", (event) => {
+        const maxScroll = chatTranscript.scrollHeight - chatTranscript.clientHeight;
+        if (maxScroll <= 0) {
+          return;
+        }
+        const nextScrollTop = Math.max(0, Math.min(maxScroll, chatTranscript.scrollTop + event.deltaY));
+        if (nextScrollTop !== chatTranscript.scrollTop) {
+          event.preventDefault();
+          chatTranscript.scrollTop = nextScrollTop;
+        }
+      }, { passive: false });
+    }
+
+    function renderChat(emptyMessage = "") {
+      if (!state.chatMessages.length) {
+        chatTranscript.innerHTML = `<div class="chat-empty">${escapeHtml(emptyMessage || "请开始对话。")}</div>`;
+        return;
+      }
+      chatTranscript.innerHTML = state.chatMessages.map((message, index) => {
+        const role = message.role === "user" ? "user" : (message.role === "assistant" ? "assistant" : "system");
+        const normalizedContent = role === "assistant" ? stripMarkdownMarkers(message.content || "") : String(message.content || "");
+        const body = escapeHtml(normalizedContent).replace(/\n/g, "<br>");
+        const speechTools = role === "assistant" ? `
+              <div class="chat-tools">
+                <button class="mini-btn primary message-speak-btn" type="button" data-message-index="${index}">语音播报</button>
+                <button class="mini-btn secondary message-stop-btn" type="button">停止</button>
+              </div>
+        ` : "";
+        return `
+          <div class="chat-message ${role}">
+            <div class="chat-bubble">
+              <div>${body}</div>
+              ${speechTools}
+            </div>
+          </div>
+        `;
+      }).join("");
+      chatTranscript.style.scrollBehavior = 'smooth';
+      chatTranscript.scrollTop = chatTranscript.scrollHeight;
+      chatTranscript.addEventListener('scrollend', () => {
+        chatTranscript.style.scrollBehavior = '';
+      }, { once: true });
+    }
+
+    function pushChatMessage(role, content, createdAt = new Date().toISOString(), options = {}) {
+      const { trackShortTerm = false } = options;
+      state.chatMessages.push({ role, content, created_at: createdAt });
+      if (trackShortTerm) {
+        state.shortTermMessages.push({ role, content, created_at: createdAt });
+        state.shortTermMessages = state.shortTermMessages.slice(-(SHORT_TERM_ROUND_LIMIT * 2));
+      }
+      persistChatMessages();
+      renderChat();
+      if (role === "assistant") {
+        syncLatestMemoryAnswer(content);
+      }
+    }
+
+    function resetChat(forceNew = false, message = "") {
+      if (forceNew || !state.sessionId) {
+        ensureSessionId(forceNew);
+      } else {
+        updateSessionDisplays();
+      }
+      state.chatMessages = [];
+      resetShortTermMemory();
+      persistChatMessages();
+      renderChat(message || (state.patientId ? "当前会话已就绪，可以继续发送下一条消息。" : "请先发送一条消息，系统就会开始记住这个会话。"));
+    }
+
+    function renderGeneralChat(emptyMessage = "") {
+      if (!generalChatTranscript) {
+        return;
+      }
+      if (!state.generalChatMessages.length) {
+        generalChatTranscript.innerHTML = `<div class="chat-empty">${escapeHtml(emptyMessage || "请开始对话。")}</div>`;
+        return;
+      }
+      generalChatTranscript.innerHTML = state.generalChatMessages.map((message) => {
+        const role = message.role === "user" ? "user" : (message.role === "assistant" ? "assistant" : "system");
+        const normalizedContent = role === "assistant" ? stripMarkdownMarkers(message.content || "") : String(message.content || "");
+        const body = escapeHtml(normalizedContent).replace(/\n/g, "<br>");
+        return `
+          <div class="chat-message ${role}">
+            <div class="chat-bubble">
+              <div>${body}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+      generalChatTranscript.style.scrollBehavior = 'smooth';
+      generalChatTranscript.scrollTop = generalChatTranscript.scrollHeight;
+      generalChatTranscript.addEventListener('scrollend', () => {
+        generalChatTranscript.style.scrollBehavior = '';
+      }, { once: true });
+    }
+
+    function selectGeneralSession(sessionId) {
+      const target = String(sessionId || "").trim();
+      if (!target) {
+        return;
+      }
+      state.generalSessionId = target;
+      localStorage.setItem(generalSessionStorageKey(), target);
+      state.generalChatMessages = readStoredGeneralChatMessages(target);
+      renderGeneralChat(state.generalChatMessages.length ? "" : "可以直接开始提问，也可以新建一段独立对话。");
+      upsertGeneralRecentSession(target, buildGeneralRecentSnapshot(target, state.generalChatMessages));
+      if (generalQuestionInput) {
+        generalQuestionInput.focus();
+      }
+    }
+
+    function pushGeneralChatMessage(role, content, createdAt = new Date().toISOString()) {
+      state.generalChatMessages.push({ role, content, created_at: createdAt });
+      state.generalChatMessages = state.generalChatMessages.slice(-24);
+      persistGeneralChatMessages();
+      renderGeneralChat();
+    }
+
+    function resetGeneralChat(forceNew = false, message = "") {
+      if (forceNew || !state.generalSessionId) {
+        state.generalSessionId = generateSessionId();
+      }
+      state.generalChatMessages = [];
+      persistGeneralChatMessages();
+      renderGeneralChat(message || "可以直接开始提问。");
+      if (generalQuestionInput) {
+        generalQuestionInput.value = "";
+      }
+      renderGeneralRecentSessions();
+    }
+
+    function escapeMemoryText(value) {
+      return escapeHtml(String(value || "").trim() || "无");
+    }
+
+    function renderMemoryDebugCards(debugPayload) {
+      if (!memoryDebugCards) {
+        return;
+      }
+
+      const payload = debugPayload && typeof debugPayload === "object" ? debugPayload : null;
+      if (!payload) {
+        memoryDebugCards.innerHTML = `<div class="memory-debug-empty">当前没有可展示的记忆调试信息。</div>`;
+        return;
+      }
+
+      const sessionState = payload.working_memory?.session_state || {};
+      const activeEntities = payload.working_memory?.active_entities || {};
+      const riskSignals = payload.working_memory?.risk_signals || {};
+      const memoryLayers = payload.memory_layers || {};
+      const recentMessages = Array.isArray(payload.working_memory?.recent_messages) ? payload.working_memory.recent_messages : [];
+
+      const entityItems = []
+        .concat((activeEntities.drugs || []).map((item) => `药物：${item}`))
+        .concat((activeEntities.symptoms || []).map((item) => `症状：${item}`))
+        .concat((activeEntities.tests || []).map((item) => `检查：${item}`))
+        .concat((activeEntities.metrics || []).map((item) => `指标：${item}`));
+
+      const riskItems = []
+        .concat((riskSignals.red_flags || []).map((item) => `红旗：${item}`))
+        .concat((riskSignals.medication_flags || []).map((item) => `用药：${item}`))
+        .concat((riskSignals.monitoring_flags || []).map((item) => `监测：${item}`));
+
+      const hasRedOrMed = (riskSignals.red_flags && riskSignals.red_flags.length > 0)
+                       || (riskSignals.medication_flags && riskSignals.medication_flags.length > 0);
+      const adviceStatus = hasRedOrMed
+        ? "✅ 本轮已自动追加就医/用药安全建议"
+        : "— 本轮未触发安全建议";
+
+      const recentPreview = recentMessages.slice(-4).map((item) => {
+        const role = item.role === "assistant" ? "助手" : (item.role === "user" ? "用户" : "系统");
+        return `${role}：${String(item.content || "").trim()}`;
+      });
+
+      const cards = [
+        {
+          title: "工作记忆",
+          body: [
+            `意图：${sessionState.intent || "无"}`,
+            `当前主题：${sessionState.current_topic || "无"}`,
+            `目标：${sessionState.goal || "无"}`,
+            `工作摘要：${sessionState.working_summary || "无"}`,
+            `下一步：${sessionState.next_action || "无"}`,
+            `记忆焦点：${sessionState.memory_focus || "无"}`,
+          ].join("\n"),
+          items: recentPreview,
+        },
+        {
+          title: "事实记忆",
+          body: memoryLayers.factual_memory || "当前这轮没有命中患者事实记忆。",
+          items: [],
+        },
+        {
+          title: "长期摘要记忆",
+          body: memoryLayers.long_term_summary_memory || "当前这轮没有命中长期摘要记忆。",
+          items: [],
+        },
+        {
+          title: "知识记忆",
+          body: memoryLayers.knowledge_memory || "当前这轮没有命中知识记忆。",
+          items: [],
+        },
+        {
+          title: "短期记忆上下文",
+          body: memoryLayers.short_term_memory || "当前这轮还没有形成可复用的短期工作记忆，多见于首轮提问或上下文较少时。",
+          items: entityItems.slice(0, 6),
+        },
+        {
+          title: "风险信号与安全建议",
+          body: [
+            `最近助手摘要：${sessionState.last_assistant_summary || "无"}`,
+            adviceStatus,
+          ].join("\n"),
+          items: (riskItems.length ? riskItems : ["当前未提取到明显风险信号"]).slice(0, 6),
+        },
+        {
+          title: "当前识别到的实体",
+          body: entityItems.length ? "以下实体来自最近几轮对话中的显式提取。" : "当前还没有识别到稳定的药物、症状、检查或指标实体。",
+          items: entityItems.slice(0, 8),
+        },
+      ];
+
+      memoryDebugCards.innerHTML = cards.map((card) => `
+        <section class="memory-debug-card">
+          <h3>${escapeHtml(card.title)}</h3>
+          <p>${escapeMemoryText(card.body)}</p>
+          ${Array.isArray(card.items) && card.items.length
+            ? `<ul>${card.items.map((item) => `<li>${escapeHtml(String(item || "").trim())}</li>`).join("")}</ul>`
+            : ""
+          }
+        </section>
+      `).join("");
+    }
+
+    function setOutput(title, data, options = {}) {
+      const { syncAnswer = true } = options;
+      lastAction.textContent = title;
+      output.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      if (memoryDebugOutput) {
+        const debugPayload = data && typeof data === "object" && data.memory_debug
+          ? data.memory_debug
+          : {
+            message: title.includes("图文")
+              ? "当前这次图文问答返回里没有带出 memory debug。若本地代码已更新，优先检查线上部署版本或浏览器缓存。"
+              : "当前返回里没有 memory debug。",
+          };
+        renderMemoryDebugCards(debugPayload);
+        memoryDebugOutput.textContent = JSON.stringify(debugPayload, null, 2);
+      }
+      if (data && typeof data === "object") {
+        if (syncAnswer) {
+          state.lastSpeechText = data.speech_text || data.answer || state.lastSpeechText || "";
+        }
+        if (data.patient_id && data.patient_id !== state.patientId) {
+          state.patientId = String(data.patient_id || "").trim();
+          state.hospitalId = String(data.hospital_id || state.hospitalId || "").trim();
+          if (currentPatientId) {
+            currentPatientId.textContent = state.patientId || "未绑定";
+          }
+          if (currentHospitalId) {
+            currentHospitalId.textContent = state.hospitalId || "未设置";
+          }
+          if (queryPatientBadge) {
+            queryPatientBadge.textContent = state.patientId || "未设置";
+          }
+          document.getElementById("lookupPatientId").value = state.patientId;
+          document.getElementById("medicalPatientId").value = state.patientId;
+          document.getElementById("visitPatientId").value = state.patientId;
+          persistContext();
+          if (state.patientId && state.sessionId) {
+            promoteAnonymousSessionToPatient().catch(() => {});
+          }
+        }
+        if (data.session_id) {
+          state.sessionId = data.session_id;
+          updateSessionDisplays();
+        }
+      }
+      if (syncAnswer && data && typeof data === "object" && data.answer) {
+        setAnswer(data.answer);
+      }
+    }
+
+    function setStatus(id, message, isError = false) {
+      const el = document.getElementById(id);
+      el.textContent = message || "";
+      el.className = isError ? "status error" : "status";
+    }
+
+    function clearStatuses() {
+      ["patientStatus", "patientQueryStatus", "medicalStatus", "visitStatus", "lookupStatus", "contextStatus", "multimodalStatus"].forEach((id) => setStatus(id, ""));
+    }
+
+    async function promoteAnonymousSessionToPatient() {
+      if (!state.patientId || !state.sessionId) {
+        return null;
+      }
+      return request("/api/v1/memory/conversations/promote-session", {
+        method: "POST",
+        body: JSON.stringify({
+          patient_id: state.patientId,
+          hospital_id: state.hospitalId || null,
+          session_id: state.sessionId,
+        }),
+      });
+    }
+
+    function setCurrentContext({
+      patientId = state.patientId,
+      hospitalId = state.hospitalId,
+      authToken = state.authToken,
+      sessionId = null,
+      preserveSession = false,
+    } = {}) {
+      const previousPatientId = state.patientId;
+      state.patientId = patientId || "";
+      state.hospitalId = hospitalId || "";
+      state.authToken = normalizeAuthToken(authToken);
+
+      if (currentPatientId) {
+        currentPatientId.textContent = state.patientId || "未确认";
+      }
+      if (currentHospitalId) {
+        currentHospitalId.textContent = state.hospitalId || "未确认";
+      }
+      if (currentAuthToken) {
+        currentAuthToken.textContent = state.authToken ? "已设置" : "未设置";
+      }
+      if (queryPatientBadge) {
+        queryPatientBadge.textContent = state.patientId || "未确认";
+      }
+
+      document.getElementById("medicalPatientId").value = state.patientId;
+      document.getElementById("visitPatientId").value = state.patientId;
+      document.getElementById("lookupPatientId").value = state.patientId;
+
+      if (previousPatientId !== state.patientId) {
+        state.chatSessions = [];
+        if (preserveSession) {
+          if (sessionId) {
+            state.sessionId = sessionId;
+          } else if (!state.sessionId) {
+            ensureSessionId(false);
+          }
+          updateSessionDisplays();
+          renderSessionOptions();
+        } else {
+          state.sessionId = state.patientId
+            ? (localStorage.getItem(sessionStorageKey(state.patientId)) || "")
+            : (localStorage.getItem(sessionStorageKey("")) || state.sessionId || "");
+          if (state.patientId) {
+            resetChat(!state.sessionId, "已选择当前患者。你可以继续已保存会话，或开始一个新会话。");
+          } else if (state.sessionId) {
+            updateSessionDisplays();
+            restoreStoredChatMessages("请开始对话。");
+          } else {
+            state.chatMessages = [];
+            resetShortTermMemory();
+            persistChatMessages();
+            updateSessionDisplays();
+            renderChat("请先发送一条消息，系统就会开始记住这个会话。");
+          }
+        }
+      } else if (state.patientId || state.sessionId) {
+        ensureSessionId(false);
+        if (!state.patientId && state.sessionId) {
+          restoreStoredChatMessages("请开始对话。");
+        }
+      } else {
+        updateSessionDisplays();
+      }
+      persistContext();
+      if (state.patientId && state.sessionId) {
+        promoteAnonymousSessionToPatient().catch(() => {});
+      }
+    }
+
+    function fillPatientForm(preset) {
+      const form = document.getElementById("patientForm");
+      Object.entries(preset).forEach(([key, value]) => {
+        const field = form.elements.namedItem(key);
+        if (field) {
+          field.value = value;
+        }
+      });
+      setCurrentContext({ hospitalId: preset.hospital_id, patientId: state.patientId, authToken: state.authToken });
+      setStatus("patientStatus", `${preset.full_name} / ${preset.patient_code} 已加载到表单。`);
+    }
+
+    function formToObject(form) {
+      const formData = new FormData(form);
+      const result = {};
+      for (const [key, value] of formData.entries()) {
+        const trimmed = typeof value === "string" ? value.trim() : value;
+        if (trimmed === "") {
+          continue;
+        }
+        result[key] = trimmed;
+      }
+      return result;
+    }
+
+    async function request(url, options = {}) {
+      const headers = new Headers(options.headers || {});
+      const body = options.body;
+      if (!(body instanceof FormData) && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+
+      const timeoutMs = options.timeout || (body instanceof FormData ? 180000 : 60000);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const signal = options.signal
+        ? combinedSignal(options.signal, controller.signal)
+        : controller.signal;
+
+      try {
+        const response = await fetch(url, { ...options, headers, signal });
+        clearTimeout(timeoutId);
+        const text = await response.text();
+        let data = text;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (_) {}
+
+        if (!response.ok) {
+          let detail = data;
+          if (typeof data === "object" && data !== null) {
+            if (Array.isArray(data.detail)) {
+              detail = data.detail.map((item) => {
+                if (typeof item === "object" && item !== null) {
+                  const location = Array.isArray(item.loc) ? item.loc.join(".") : "";
+                  const message = String(item.msg || "").trim();
+                  return location ? `${location}: ${message}` : message;
+                }
+                return String(item);
+              }).filter(Boolean).join("; ");
+            } else {
+              detail = data.detail || JSON.stringify(data, null, 2);
+            }
+          }
+          throw new Error(detail || `请求失败： ${response.status}`);
+        }
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === "AbortError") {
+          throw new Error("请求超时，请检查网络或稍后重试。");
+        }
+        throw error;
+      }
+    }
+
+    function combinedSignal(signalA, signalB) {
+      if (signalA.aborted || signalB.aborted) return AbortSignal.abort();
+      const controller = new AbortController();
+      const onAbort = () => controller.abort();
+      signalA.addEventListener("abort", onAbort, { once: true });
+      signalB.addEventListener("abort", onAbort, { once: true });
+      if (signalA.aborted || signalB.aborted) {
+        controller.abort();
+      }
+      return controller.signal;
+    }
+
+    async function loadConversationHistory(silent = false) {
+      if (!state.patientId) {
+        throw new Error("请先选择患者。");
+      }
+      ensureSessionId(false);
+      await promoteAnonymousSessionToPatient().catch(() => null);
+      const query = new URLSearchParams({
+        patient_id: state.patientId,
+        session_id: state.sessionId,
+        limit: "100",
+      }).toString();
+      const messages = await request(`/api/v1/memory/conversations/messages?${query}`);
+      state.chatMessages = Array.isArray(messages) ? messages.map((item) => ({
+        role: item.role,
+        content: item.content,
+        created_at: item.created_at,
+      })) : [];
+      resetShortTermMemory();
+      persistChatMessages();
+      renderChat(state.chatMessages.length ? "" : "当前会话还没有已保存的消息。");
+      const lastAssistant = [...state.chatMessages].reverse().find((item) => item.role === "assistant");
+      if (lastAssistant && lastAssistant.content) {
+        syncLatestMemoryAnswer(lastAssistant.content, "已加载记忆聊天最新回答");
+      }
+      renderSessionOptions();
+      if (!silent) {
+        setStatus("contextStatus", `已加载当前会话的 ${state.chatMessages.length} 条消息。`, false);
+      }
+      return messages;
+    }
+
+    async function loadConversationSessions(silent = false) {
+      if (!state.patientId) {
+        state.chatSessions = [];
+        renderSessionOptions();
+        return [];
+      }
+      if (state.sessionId) {
+        await promoteAnonymousSessionToPatient().catch(() => null);
+      }
+      const query = new URLSearchParams({
+        patient_id: state.patientId,
+        limit: "12",
+      }).toString();
+      const sessions = await request(`/api/v1/memory/conversations/sessions?${query}`);
+      state.chatSessions = Array.isArray(sessions) ? sessions : [];
+      renderSessionOptions();
+      if (!silent) {
+        setStatus("contextStatus", `已加载当前患者的 ${state.chatSessions.length} 个已保存会话。`, false);
+      }
+      return state.chatSessions;
+    }
+
+    async function deleteCurrentPatient() {
+      if (!state.patientId) {
+        throw new Error("当前上下文中没有 patient_id。");
+      }
+      const data = await request(`/api/v1/patients/${state.patientId}`, { method: "DELETE" });
+      if (state.patientId) {
+        localStorage.removeItem(sessionStorageKey(state.patientId));
+      }
+      setCurrentContext({ patientId: "", hospitalId: state.hospitalId, authToken: "" });
+      return data;
+    }
+
+    async function issueTokenForCurrentPatient() {
+      if (!state.patientId) {
+        throw new Error("当前上下文中没有 patient_id。");
+      }
+      const payload = {
+        patient_id: state.patientId,
+        hospital_id: state.hospitalId || undefined,
+        expires_in_minutes: 120,
+      };
+      const data = await request("/api/v1/mcp/auth/issue-token", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const token = data?.data?.auth_token || "";
+      setCurrentContext({ authToken: token });
+      return token;
+    }
+
+    document.getElementById("patientForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearStatuses();
+      const payload = formToObject(event.currentTarget);
+      try {
+        const data = await request("/api/v1/patients", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setCurrentContext({ patientId: data.id, hospitalId: data.hospital_id, authToken: "" });
+        await loadConversationSessions(true).catch(() => {});
+        setStatus("patientStatus", `患者已创建，patient_id = ${data.id}`);
+        setOutput("创建患者成功", data);
+      } catch (error) {
+        setStatus("patientStatus", error.message, true);
+        setOutput("创建患者失败", { error: error.message });
+      }
+    });
+
+    document.getElementById("patientQueryForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearStatuses();
+      const query = new URLSearchParams(formToObject(event.currentTarget)).toString();
+      try {
+        const data = await request(`/api/v1/patients?${query}`);
+        const first = Array.isArray(data) && data[0] ? data[0] : null;
+        if (first) {
+          setCurrentContext({ patientId: first.id, hospitalId: first.hospital_id, authToken: "" });
+          await loadConversationSessions(true).catch(() => {});
+          await loadConversationHistory(true).catch(() => {});
+          setStatus("patientQueryStatus", `找到 ${data.length} 位患者；已将第一位设为当前上下文。`);
+        } else {
+          setStatus("patientQueryStatus", "查询成功，但没有找到患者。", false);
+        }
+        setOutput("查询患者列表", data);
+      } catch (error) {
+        setStatus("patientQueryStatus", error.message, true);
+        setOutput("查询患者列表 failed", { error: error.message });
+      }
+    });
+
+    document.getElementById("medicalRecordForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearStatuses();
+      const payload = formToObject(event.currentTarget);
+      const patientId = payload.patient_id;
+      delete payload.patient_id;
+      try {
+        const data = await request(`/api/v1/patients/${patientId}/medical-records`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setStatus("medicalStatus", "病历已保存。", false);
+        setOutput("创建病历成功", data);
+      } catch (error) {
+        setStatus("medicalStatus", error.message, true);
+        setOutput("创建病历失败", { error: error.message });
+      }
+    });
+
+    document.getElementById("visitForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearStatuses();
+      const payload = formToObject(event.currentTarget);
+      const patientId = payload.patient_id;
+      delete payload.patient_id;
+      try {
+        const data = await request(`/api/v1/patients/${patientId}/visits`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setStatus("visitStatus", "就诊记录已保存。", false);
+        setOutput("创建就诊记录成功", data);
+      } catch (error) {
+        setStatus("visitStatus", error.message, true);
+        setOutput("创建就诊记录失败", { error: error.message });
+      }
+    });
+
+    async function runLookup(kind) {
+      clearStatuses();
+      const patientId = document.getElementById("lookupPatientId").value.trim();
+      if (!patientId) {
+        setStatus("lookupStatus", "请先输入 patient_id。", true);
+        return;
+      }
+
+      const endpoints = {
+        patient: { url: `/api/v1/patients/${patientId}`, title: "获取患者信息" },
+        medical: { url: `/api/v1/patients/${patientId}/medical-records`, title: "获取病历记录" },
+        visit: { url: `/api/v1/patients/${patientId}/visits`, title: "获取就诊记录" },
+        profile: { url: `/api/v1/memory/profile?patient_id=${encodeURIComponent(patientId)}`, title: "获取记忆档案" },
+      };
+
+      try {
+        const data = await request(endpoints[kind].url);
+        if (kind === "patient" && data.id) {
+          setCurrentContext({ patientId: data.id, hospitalId: data.hospital_id, authToken: "" });
+          await loadConversationSessions(true).catch(() => {});
+          await loadConversationHistory(true).catch(() => {});
+        }
+        if (kind === "profile" && data.patient && data.patient.id) {
+          setCurrentContext({ patientId: data.patient.id, hospitalId: data.patient.hospital_id, authToken: "" });
+          await loadConversationSessions(true).catch(() => {});
+          await loadConversationHistory(true).catch(() => {});
+        }
+        setStatus("lookupStatus", `${endpoints[kind].title} 成功。`);
+        setOutput(endpoints[kind].title, data);
+      } catch (error) {
+        setStatus("lookupStatus", error.message, true);
+        setOutput(`${endpoints[kind].title} failed`, { error: error.message });
+      }
+    }
+
+    async function resolvePatientFromPersonalInfo() {
+      clearStatuses();
+      const name = String(profileNameInput?.value || "").trim();
+      const phone = String(profilePhoneInput?.value || "").trim();
+      applyProfileState({ name, phone });
+      if (!name && !phone) {
+        setStatus("contextStatus", "请先填写姓名和电话。", true);
+        setProfileLoginStatus("请先填写姓名和电话。", true);
+        return [];
+      }
+
+      const hospitalId = String(state.hospitalId || "hospital-a").trim() || "hospital-a";
+      const data = await request(`/api/v1/patients?hospital_id=${encodeURIComponent(hospitalId)}${phone ? `&phone=${encodeURIComponent(phone)}` : ""}`);
+      const normalizedName = normalizePersonalName(name);
+      const normalizedPhone = phone.replace(/\D/g, "");
+      const matches = Array.isArray(data)
+        ? data.filter((patient) => {
+            const patientName = normalizePersonalName(patient.full_name);
+            const patientPhone = String(patient.phone || "").replace(/\D/g, "");
+            const nameOk = !normalizedName
+              || patientName === normalizedName
+              || patientName.includes(normalizedName)
+              || normalizedName.includes(patientName);
+            const phoneOk = !normalizedPhone || patientPhone.includes(normalizedPhone);
+            return nameOk && phoneOk;
+          })
+        : [];
+
+      if (matches.length === 1) {
+        const patient = matches[0];
+        ensureSessionId(false);
+        setCurrentContext({
+          patientId: patient.id,
+          hospitalId: patient.hospital_id,
+          authToken: "",
+          sessionId: state.sessionId,
+          preserveSession: true,
+        });
+        state.hospitalId = patient.hospital_id;
+        await promoteAnonymousSessionToPatient().catch(() => {});
+        setStatus("contextStatus", `已识别为 ${patient.full_name}，当前对话已归属该患者，可以继续问诊。`, false);
+        setProfileLoginStatus(`已识别为 ${patient.full_name}，已切换到记忆聊天。`, false);
+        updateMemoryLoginHint(`已登录：${patient.full_name}，系统已切换到记忆聊天。`);
+        switchWorkspace("chat");
+        setChatSubMode("memory");
+        closeLoginModal();
+        await loadConversationSessions(true).catch(() => {});
+      } else if (matches.length > 1) {
+        setStatus("contextStatus", `找到 ${matches.length} 位可能匹配的患者，请再补充一点信息。`, true);
+        setProfileLoginStatus(`找到 ${matches.length} 位可能匹配的患者，请补充更准确的信息。`, true);
+        setOutput("个人信息匹配结果", matches);
+        updateMemoryLoginHint("请先填写并绑定个人信息后，再开启记忆聊天。");
+      } else {
+        setStatus("contextStatus", "已保存个人信息，但暂时没有找到对应患者。", true);
+        setProfileLoginStatus("没有找到对应患者，请检查姓名或电话是否填写正确。", true);
+        setOutput("个人信息匹配结果", { name, phone, matches: [] });
+        updateMemoryLoginHint("请先填写并绑定个人信息后，再开启记忆聊天。");
+      }
+      return matches;
+    }
+
+    document.getElementById("getPatientBtn").addEventListener("click", () => runLookup("patient"));
+    document.getElementById("getMedicalBtn").addEventListener("click", () => runLookup("medical"));
+    document.getElementById("getVisitBtn").addEventListener("click", () => runLookup("visit"));
+    document.getElementById("getProfileBtn").addEventListener("click", () => runLookup("profile"));
+
+    if (applyProfileBtn) {
+      applyProfileBtn.addEventListener("click", () => {
+        resolvePatientFromPersonalInfo().catch((error) => {
+          setStatus("contextStatus", error.message, true);
+          setProfileLoginStatus(error.message, true);
+        });
+      });
+    }
+    if (clearProfileBtn) {
+      clearProfileBtn.addEventListener("click", () => {
+        applyProfileState({ name: "", phone: "" });
+        setCurrentContext({
+          patientId: "",
+          hospitalId: "",
+          authToken: "",
+          sessionId: state.sessionId,
+          preserveSession: true,
+        });
+        switchWorkspace("chat");
+        setChatSubMode("general");
+        setStatus("contextStatus", "已清空个人信息，已切回通用聊天。", false);
+        setProfileLoginStatus("已清空个人信息。", false);
+      });
+    }
+    if (profileNameInput) {
+      profileNameInput.addEventListener("input", () => applyProfileState({ name: profileNameInput.value, phone: profilePhoneInput?.value || "" }));
+    }
+    if (profilePhoneInput) {
+      profilePhoneInput.addEventListener("input", () => applyProfileState({ name: profileNameInput?.value || "", phone: profilePhoneInput.value }));
+    }
+
+    // ── 一键选择患者 ─────────────────────────────────────────────
+    if (loadPatientListBtn && patientQuickSelect) {
+      loadPatientListBtn.addEventListener("click", async () => {
+        loadPatientListBtn.disabled = true;
+        loadPatientListBtn.textContent = "加载中...";
+        patientQuickStatus.textContent = "";
+        try {
+          // Try API first
+          const hospitalId = state.hospitalId || "hospital-a";
+          let patients = [];
+          try {
+            const data = await request(`/api/v1/patients?hospital_id=${encodeURIComponent(hospitalId)}`);
+            patients = Array.isArray(data) ? data : [];
+          } catch (_) {
+            // API query failed, will use presets
+          }
+          if (!patients.length) {
+            // Auto-create from presets
+            patientQuickStatus.textContent = "数据库暂无患者，自动从预设创建中...";
+            for (const preset of patientPresets) {
+              try {
+                const created = await request("/api/v1/patients", {
+                  method: "POST",
+                  body: JSON.stringify(preset),
+                });
+                patients.push(created);
+              } catch (e) {
+                console.warn("Failed to create preset patient:", preset.full_name, e);
+              }
+            }
+          }
+          // Populate dropdown
+          patientQuickSelect.innerHTML = '<option value="">— 选择患者 —</option>';
+          patients.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.textContent = `${p.full_name} (${p.patient_code || p.id})`;
+            patientQuickSelect.appendChild(opt);
+          });
+          patientQuickStatus.textContent = patients.length
+            ? `已加载 ${patients.length} 位患者`
+            : "未找到患者，请手动创建";
+        } catch (e) {
+          patientQuickStatus.textContent = "加载失败：" + (e.message || e);
+        } finally {
+          loadPatientListBtn.disabled = false;
+          loadPatientListBtn.textContent = "加载患者列表";
+        }
+      });
+
+      patientQuickSelect.addEventListener("change", async () => {
+        const patientId = patientQuickSelect.value;
+        if (!patientId) {
+          return;
+        }
+        try {
+          const patient = await request(`/api/v1/patients/${patientId}`);
+          setCurrentContext({
+            patientId: patient.id,
+            hospitalId: patient.hospital_id,
+            authToken: "",
+          });
+          // Also auto-issue an auth token for the agent
+          try {
+            const tokenResp = await request("/api/v1/mcp/auth/issue-token", {
+              method: "POST",
+              body: JSON.stringify({ patient_id: patient.id, expires_in_minutes: 120 }),
+            });
+            if (tokenResp?.data?.auth_token) {
+              state.authToken = tokenResp.data.auth_token;
+              if (currentAuthToken) {
+                currentAuthToken.textContent = state.authToken.slice(0, 16) + "...";
+              }
+            }
+          } catch (_) { /* token issue may fail in some setups */ }
+          switchWorkspace("chat");
+          setChatSubMode("memory");
+          await loadConversationSessions(true).catch(() => {});
+          patientQuickStatus.textContent = `已选择：${patient.full_name}`;
+          if (profileNameInput) profileNameInput.value = patient.full_name || "";
+          if (profilePhoneInput) profilePhoneInput.value = patient.phone || "";
+          state.profileName = patient.full_name || "";
+          state.profilePhone = patient.phone || "";
+          updateSessionDisplays();
+        } catch (e) {
+          patientQuickStatus.textContent = "切换失败：" + (e.message || e);
+        }
+      });
+    }
+
+    function setGeneralStatus(message, isError = false) {
+      if (!generalChatStatus) {
+        return;
+      }
+      generalChatStatus.textContent = message || "";
+      generalChatStatus.classList.toggle("error", Boolean(isError));
+    }
+
+    function buildGeneralConversationContext() {
+      const recentMessages = state.generalChatMessages.slice(-12);
+      return recentMessages.map((item) => {
+        const role = item.role === "assistant" ? "Assistant" : (item.role === "user" ? "User" : "System");
+        return `${role}: ${String(item.content || "").trim()}`;
+      }).filter(Boolean).join("\n");
+    }
+
+    async function handleGeneralChatSubmit(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      clearStatuses();
+      if (!generalQuestionInput) {
+        return;
+      }
+      const question = String(generalQuestionInput.value || "").trim();
+      if (!question) {
+        setGeneralStatus("请先输入消息。", true);
+        return;
+      }
+      if (!state.generalSessionId) {
+        state.generalSessionId = localStorage.getItem(generalSessionStorageKey()) || generateSessionId();
+      }
+
+      const createdAt = new Date().toISOString();
+      pushGeneralChatMessage("user", question, createdAt);
+      generalQuestionInput.value = "";
+      setGeneralStatus("正在生成回复...");
+      if (generalSendBtn) {
+        generalSendBtn.disabled = true;
+      }
+
+      try {
+        const data = await request("/api/v1/mcp/agent/query", {
+          method: "POST",
+          body: JSON.stringify({
+            question,
+            session_id: state.generalSessionId,
+            chat_mode: "general",
+            conversation_context: buildGeneralConversationContext(),
+          }),
+        });
+        if (data?.session_id) {
+          state.generalSessionId = data.session_id;
+        }
+        const answer = String(data?.answer || "Response received.");
+        pushGeneralChatMessage("assistant", answer, new Date().toISOString());
+        setGeneralStatus(data?.short_term_memory_count != null
+          ? `已保存最近对话，短期消息数：${data.short_term_memory_count}`
+          : "已保存最近对话。");
+      } catch (error) {
+        pushGeneralChatMessage("system", `请求失败：${error.message}`, new Date().toISOString());
+        setGeneralStatus(error.message, true);
+      } finally {
+        persistGeneralChatMessages();
+        if (generalSendBtn) {
+          generalSendBtn.disabled = false;
+        }
+        generalQuestionInput?.focus();
+      }
+    }
+
+    if (generalChatForm) {
+      generalChatForm.addEventListener("submit", handleGeneralChatSubmit);
+    }
+    if (generalNewChatBtn) {
+      generalNewChatBtn.addEventListener("click", () => {
+        resetGeneralChat(true, "新的通用对话已准备就绪。");
+        setGeneralStatus("已新建通用对话。");
+      });
+    }
+
+    function updateMemoryLoginHint(text) {
+      if (chatSubModeHint) chatSubModeHint.textContent = text;
+      if (memoryLoginChip) memoryLoginChip.textContent = state.patientId ? "已登录" : "未登录";
+    }
+
+    function setProfileLoginStatus(message, isError = false) {
+      if (!profileLoginStatus) {
+        return;
+      }
+      profileLoginStatus.textContent = message || "";
+      profileLoginStatus.className = isError ? "status error full" : "status full";
+    }
+
+    document.getElementById("fillPreset1Btn").addEventListener("click", () => fillPatientForm(patientPresets[0]));
+    document.getElementById("fillPreset2Btn").addEventListener("click", () => fillPatientForm(patientPresets[1]));
+    document.getElementById("fillPreset3Btn").addEventListener("click", () => fillPatientForm(patientPresets[2]));
+
+    document.getElementById("issueTokenBtn").addEventListener("click", async () => {
+      clearStatuses();
+      try {
+        await issueTokenForCurrentPatient();
+        setStatus("contextStatus", "已为当前患者签发 auth_token。", false);
+        setOutput("签发 token 成功", { patient_id: state.patientId, hospital_id: state.hospitalId, auth_token_set: true });
+      } catch (error) {
+        setStatus("contextStatus", error.message, true);
+        setOutput("签发 token 失败", { error: error.message });
+      }
+    });
+
+    document.getElementById("newSessionBtn").addEventListener("click", () => {
+      clearStatuses();
+      switchWorkspace("chat");
+      setChatSubMode("memory");
+      resetChat(true, "新的对话会话已准备就绪。");
+      renderSessionOptions();
+      setStatus("contextStatus", `已启动新会话：${state.sessionId}`, false);
+      setOutput("新会话已创建", { session_id: state.sessionId, patient_id: state.patientId || null });
+    });
+
+    document.getElementById("loadSelectedSessionBtn").addEventListener("click", async () => {
+      clearStatuses();
+      try {
+        const sessionId = String(chatSessionSelect.value || "").trim();
+        if (!sessionId) {
+          throw new Error("请先选择一条已保存会话。");
+        }
+        selectSession(sessionId);
+        await loadConversationHistory(false);
+        setOutput("加载所选会话", {
+          patient_id: state.patientId,
+          session_id: state.sessionId,
+          message_count: state.chatMessages.length,
+        });
+      } catch (error) {
+        setStatus("contextStatus", error.message, true);
+        setOutput("加载所选会话 failed", { error: error.message });
+      }
+    });
+
+    document.getElementById("deleteSelectedSessionBtn").addEventListener("click", async () => {
+      clearStatuses();
+      try {
+        const sessionId = String(chatSessionSelect.value || "").trim();
+        if (!sessionId) {
+          throw new Error("请先选择一条已保存会话。");
+        }
+        if (!state.patientId) {
+          throw new Error("请先确认当前患者。");
+        }
+        const data = await request(`/api/v1/memory/conversations/messages?patient_id=${encodeURIComponent(state.patientId)}&session_id=${encodeURIComponent(sessionId)}`, {
+          method: "DELETE",
+        });
+        if (sessionId === state.sessionId) {
+          localStorage.removeItem(sessionStorageKey(state.patientId));
+          state.sessionId = "";
+          state.chatMessages = [];
+          resetShortTermMemory();
+          persistChatMessages();
+          updateSessionDisplays();
+          renderChat("该会话已删除，可以开始新的对话。");
+        }
+        await loadConversationSessions(true).catch(() => {});
+        setStatus("contextStatus", "所选会话已删除。", false);
+        setOutput("删除所选会话成功", data);
+      } catch (error) {
+        setStatus("contextStatus", error.message, true);
+        setOutput("删除所选会话失败", { error: error.message });
+      }
+    });
+
+    document.getElementById("deleteCurrentPatientBtn").addEventListener("click", async () => {
+      clearStatuses();
+      try {
+        const data = await deleteCurrentPatient();
+        setStatus("contextStatus", "当前患者已删除。", false);
+        setOutput("删除患者成功", data);
+      } catch (error) {
+        setStatus("contextStatus", error.message, true);
+        setOutput("删除患者失败", { error: error.message });
+      }
+    });
+
+    document.getElementById("clearContextBtn").addEventListener("click", () => {
+      clearStatuses();
+      applyProfileState({ name: "", phone: "" });
+      setCurrentContext({ patientId: "", hospitalId: "", authToken: "" });
+      setOutput("上下文已清空", { message: "patient_id、hospital_id、auth_token 与当前会话已清空。" });
+    });
+
+    const multimodalForm = document.getElementById("multimodalForm");
+    let isSendingMessage = false;
+
+    async function handleMultimodalSubmit(event) {
+      event.preventDefault();
+      if (isSendingMessage) {
+        return;
+      }
+      isSendingMessage = true;
+      setSendButtonState(true);
+      clearStatuses();
+      const form = multimodalForm;
+      const question = String(form.elements.namedItem("question")?.value || "").trim();
+      const shortTermMemory = buildShortTermMemory(SHORT_TERM_ROUND_LIMIT);
+      const conversationContext = buildClientConversationContext(SHORT_TERM_ROUND_LIMIT);
+      const initialImage = form.elements.namedItem("image")?.files?.[0] || null;
+      const hasImage = Boolean(initialImage && initialImage.size > 0);
+
+      if (!question) {
+        setStatus("multimodalStatus", "请先输入问题。", true);
+        isSendingMessage = false;
+        setSendButtonState(false);
+        return;
+      }
+
+      if (!state.patientId && !state.authToken) {
+        setStatus("multimodalStatus", "请先填写并绑定个人信息后，再开启记忆聊天。", true);
+        isSendingMessage = false;
+        setSendButtonState(false);
+        return;
+      }
+
+      switchWorkspace("chat");
+      setChatSubMode("memory");
+      ensureSessionId(false);
+
+      const userBubble = hasImage ? `${question}
+[已附带图片]` : question;
+      pushChatMessage("user", userBubble, new Date().toISOString(), { trackShortTerm: true });
+      form.elements.namedItem("question").value = "";
+      keepChatInView();
+
+      const sendOnce = async () => {
+        const payload = new FormData(form);
+        const requestHasImage = Boolean(payload.get("image") instanceof File && payload.get("image").size > 0);
+        payload.set("question", question);
+        payload.set("session_id", state.sessionId);
+        payload.set("chat_mode", "memory");
+        payload.set("short_term_memory_json", JSON.stringify(shortTermMemory));
+        if (!payload.get("patient_id") && state.patientId) {
+          payload.set("patient_id", state.patientId);
+        }
+        if (!payload.get("hospital_id") && state.hospitalId) {
+          payload.set("hospital_id", state.hospitalId);
+        }
+        const effectiveAuthToken = normalizeAuthToken(payload.get("auth_token") || state.authToken);
+        if (looksLikeIssuedAuthToken(effectiveAuthToken)) {
+          payload.set("auth_token", effectiveAuthToken);
+        } else {
+          payload.delete("auth_token");
+        }
+
+        if (requestHasImage) {
+          if (conversationContext) {
+            payload.set("conversation_context", conversationContext);
+          }
+          return {
+            hasImage: true,
+            data: await request("/api/v1/mcp/agent/query-with-image", {
+              method: "POST",
+              body: payload,
+            }),
+          };
+        }
+
+        payload.delete("image");
+        const body = {
+          question,
+          session_id: state.sessionId,
+          chat_mode: "memory",
+        };
+        const patientId = String(payload.get("patient_id") || "").trim();
+        const hospitalId = String(payload.get("hospital_id") || "").trim();
+        const authToken = normalizeAuthToken(payload.get("auth_token") || "");
+        if (patientId) body.patient_id = patientId;
+        if (hospitalId) body.hospital_id = hospitalId;
+        if (looksLikeIssuedAuthToken(authToken)) body.auth_token = authToken;
+        if (conversationContext) body.conversation_context = conversationContext;
+        return {
+          hasImage: false,
+          data: await request("/api/v1/mcp/agent/query", {
+            method: "POST",
+            body: JSON.stringify(body),
+          }),
+        };
+      };
+
+      try {
+        let result;
+        try {
+          result = await sendOnce();
+        } catch (error) {
+          const detail = String(error?.message || "");
+          const tokenExpired = detail.toLowerCase().includes("token") && detail.includes("过期");
+          if (tokenExpired && state.patientId) {
+            setStatus("multimodalStatus", "认证 token 已过期，正在自动重新签发...", false);
+            await issueTokenForCurrentPatient();
+            result = await sendOnce();
+          } else {
+            throw error;
+          }
+        }
+
+        const data = result.data;
+        setStructuredShortTermMemory(data.short_term_memory || null);
+        const assistantText = data.image_analysis
+          ? `${data.answer || "Response received."}
+
+Image summary: ${data.image_analysis}`
+          : (data.answer || "Response received.");
+        pushChatMessage("assistant", assistantText, new Date().toISOString(), { trackShortTerm: true });
+        state.sessionId = data.session_id || state.sessionId;
+        updateSessionDisplays();
+        await loadConversationSessions(true).catch(() => {});
+        setStatus(
+          "multimodalStatus",
+          `${result.hasImage ? "图文" : "文本"}问答成功。短期记忆条数：${data.short_term_memory_count ?? 0}。`,
+          false,
+        );
+        setOutput(result.hasImage ? "图文问答成功" : "文本问答成功", data, { syncAnswer: false });
+        form.elements.namedItem("image").value = "";
+        if (imageFileName) { imageFileName.textContent = ""; imageFileName.title = ""; }
+        questionInput?.focus();
+        keepChatInView();
+      } catch (error) {
+        const rawError = String(error.message || "");
+        const needIdentity = rawError.includes("identity confirmation required") || rawError.includes("patient-bound");
+        if (needIdentity) {
+          const fallbackMessage = "请在左上角填写你的姓名和电话。";
+          pushChatMessage("assistant", fallbackMessage, new Date().toISOString(), { trackShortTerm: true });
+          setAnswer(fallbackMessage);
+          setStatus("multimodalStatus", "需要先确认本次咨询对象。", false);
+          setOutput("等待身份确认", { identity_status: "unconfirmed", message: fallbackMessage });
+        } else {
+          pushChatMessage("system", `请求失败： ${error.message}`);
+          setStatus("multimodalStatus", error.message, true);
+          setOutput(hasImage ? "图文问答失败" : "文本问答失败", { error: error.message });
+        }
+        keepChatInView();
+      } finally {
+        isSendingMessage = false;
+        setSendButtonState(false);
+        questionInput?.focus();
+      }
+    }
+
+    multimodalForm.addEventListener("submit", handleMultimodalSubmit);
+    if (sendMessageBtn) {
+      sendMessageBtn.addEventListener("click", handleMultimodalSubmit);
+    }
+    if (questionInput) {
+      questionInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          if (!isSendingMessage) {
+            handleMultimodalSubmit(event);
+          }
+        }
+      });
+    }
+
+    if (imageFileInput && imageFileName) {
+      imageFileInput.addEventListener("change", () => {
+        const file = imageFileInput.files?.[0];
+        imageFileName.textContent = file ? file.name : "";
+        imageFileName.title = file ? file.name : "";
+      });
+    }
+
+    if (toggleAdvancedChatBtn) {
+      toggleAdvancedChatBtn.addEventListener("click", () => {
+        setChatAdvancedOpen(chatAdvancedFields?.hidden ?? true);
+      });
+    }
+    if (queryViewBtn) {
+      queryViewBtn.addEventListener("click", () => switchWorkspace("query"));
+    }
+    if (chatViewBtn) {
+      chatViewBtn.addEventListener("click", () => switchWorkspace("general"));
+    }
+    if (memoryViewBtn) {
+      memoryViewBtn.addEventListener("click", () => switchWorkspace("memory"));
+    }
+
+    /* 患者检索面板切换 */
+    const toggleQueryPanelBtn = document.getElementById("toggleQueryPanelBtn");
+    const queryPanelCloseBtn = document.getElementById("queryPanelCloseBtn");
+    const queryViewEl = document.getElementById("queryView");
+
+    function openQueryPanel() {
+      if (queryViewEl) {
+        queryViewEl.hidden = false;
+        queryViewEl.classList.add("visible");
+        queryViewEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function closeQueryPanel() {
+      if (queryViewEl) {
+        queryViewEl.hidden = true;
+        queryViewEl.classList.remove("visible");
+      }
+    }
+
+    function toggleQueryPanel() {
+      switchWorkspace("query");
+    }
+
+    if (toggleQueryPanelBtn) {
+      toggleQueryPanelBtn.addEventListener("click", toggleQueryPanel);
+    }
+    if (queryPanelCloseBtn) {
+      queryPanelCloseBtn.addEventListener("click", () => switchWorkspace("general"));
+    }
+    if (subModeGeneralBtn) {
+      subModeGeneralBtn.addEventListener("click", () => setChatSubMode("general"));
+    }
+    if (subModeMemoryBtn) {
+      subModeMemoryBtn.addEventListener("click", () => setChatSubMode("memory"));
+    }
+
+    function openLoginModal() {
+      const backdrop = document.getElementById("loginModalBackdrop");
+      if (backdrop) backdrop.hidden = false;
+      document.getElementById("profileNameInput")?.focus();
+    }
+    function closeLoginModal() {
+      const backdrop = document.getElementById("loginModalBackdrop");
+      if (backdrop) backdrop.hidden = true;
+    }
+
+    const openLoginModalBtn = document.getElementById("openLoginModalBtn");
+    if (openLoginModalBtn) {
+      openLoginModalBtn.addEventListener("click", openLoginModal);
+    }
+    const loginModalCloseBtn = document.getElementById("loginModalCloseBtn");
+    if (loginModalCloseBtn) {
+      loginModalCloseBtn.addEventListener("click", closeLoginModal);
+    }
+    const loginModalBackdrop = document.getElementById("loginModalBackdrop");
+    if (loginModalBackdrop) {
+      loginModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === loginModalBackdrop) closeLoginModal();
+      });
+    }
+
+    if (generalQuestionInput) {
+      generalQuestionInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          if (generalChatForm && typeof generalChatForm.requestSubmit === "function") {
+            generalChatForm.requestSubmit();
+          } else {
+            handleGeneralChatSubmit(event);
+          }
+        }
+      });
+    }
+    setChatAdvancedOpen(false);
+
+    async function initializePage() {
+      state.sessionId = "";
+      state.patientId = "";
+      state.hospitalId = "";
+      state.authToken = "";
+      state.profileName = "";
+      state.profilePhone = "";
+      applyProfileState({ name: "", phone: "" });
+      setCurrentContext({ patientId: "", hospitalId: "", authToken: "" });
+      state.generalRecentSessions = readStoredGeneralRecentSessions();
+      state.generalSessionId = generateSessionId();
+      setChatSubMode("general");
+      state.generalChatMessages = [];
+      renderGeneralChat("可以直接开始提问，或新建一段独立对话。");
+      renderGeneralRecentSessions();
+
+      renderSessionOptions();
+      if (memoryLoginChip) memoryLoginChip.textContent = "未登录";
+      setProfileLoginStatus("请先填写姓名和电话，再登录记忆聊天。", false);
+      state.chatMessages = [];
+      state.chatSessions = [];
+      resetShortTermMemory();
+      renderChat("登录后可开始记忆聊天。");
+      updateSessionDisplays();
+    }
+
+    bindChatWheelBehavior();
+    initializePage();
+  </script>
+  <script>
+    (() => {
+      if (window.__speechControlsInjected) {
+        return;
+      }
+      window.__speechControlsInjected = true;
+
+      const answerBoxEl = document.getElementById("answerBox");
+      const playAnswerBtnEl = document.getElementById("playAnswerBtn");
+      const stopAnswerBtnEl = document.getElementById("stopAnswerBtn");
+      const audioPlayer = document.getElementById("answerAudioPlayer");
+      const speechModeButtons = Array.from(document.querySelectorAll("[data-speech-mode]"));
+      if (!answerBoxEl) {
+        return;
+      }
+      let currentAudioUrl = "";
+
+      function getSpeechMode() {
+        return state.speechMode === "tts" ? "tts" : "browser";
+      }
+
+      function persistSpeechMode(mode) {
+        try {
+          localStorage.setItem("agentTesterSpeechMode", mode);
+        } catch (_) {}
+      }
+
+      function updateSpeechModeButtons() {
+        const mode = getSpeechMode();
+        speechModeButtons.forEach((button) => {
+          const active = button.dataset.speechMode === mode;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        if (playAnswerBtnEl) {
+          playAnswerBtnEl.textContent = mode === "tts" ? "用 TTS 播报" : "播放播报";
+        }
+      }
+
+      function setSpeechMode(mode) {
+        state.speechMode = mode === "tts" ? "tts" : "browser";
+        persistSpeechMode(state.speechMode);
+        updateSpeechModeButtons();
+        setStatus("speechStatus", state.speechMode === "tts" ? "当前使用后端 TTS。" : "当前使用浏览器语音合成。", false);
+      }
+
+      speechModeButtons.forEach((button) => {
+        button.addEventListener("click", () => setSpeechMode(button.dataset.speechMode));
+      });
+
+      updateSpeechModeButtons();
+      setStatus("speechStatus", state.speechMode === "tts" ? "当前使用后端 TTS。" : "当前使用浏览器语音合成。", false);
+
+      const originalClearStatuses = clearStatuses;
+      clearStatuses = function patchedClearStatuses() {
+        originalClearStatuses();
+        setStatus("speechStatus", "");
+      };
+
+      function revokeAudioUrl() {
+        if (currentAudioUrl) {
+          URL.revokeObjectURL(currentAudioUrl);
+          currentAudioUrl = "";
+        }
+      }
+
+      function stopAnswerPlayback() {
+        if (audioPlayer) {
+          audioPlayer.pause();
+          audioPlayer.currentTime = 0;
+          audioPlayer.removeAttribute("src");
+          audioPlayer.load();
+        }
+        revokeAudioUrl();
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+        setStatus("speechStatus", "已停止播报。", false);
+      }
+
+      function decodeAudioBase64(base64Text, mimeType) {
+        const binary = atob(base64Text);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new Blob([bytes], { type: mimeType || "audio/mpeg" });
+      }
+
+      async function playBrowserSpeech(text, sourceLabel = "回答") {
+        if (!("speechSynthesis" in window)) {
+          throw new Error("当前浏览器不支持语音合成。");
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "zh-CN";
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+        setStatus("speechStatus", `${sourceLabel} 已开始浏览器播报。`, false);
+        setOutput("浏览器播报已输出", {
+          source: sourceLabel,
+          mode: "browser_speech_synthesis",
+        });
+      }
+
+      async function playBackendSpeech(text, sourceLabel = "回答") {
+        const data = await request("/api/v1/mcp/agent/speech", {
+          method: "POST",
+          body: JSON.stringify({
+            text,
+            response_format: "mp3",
+          }),
+        });
+        const audioBlob = decodeAudioBase64(data.audio_base64, data.mime_type);
+        currentAudioUrl = URL.createObjectURL(audioBlob);
+        audioPlayer.src = currentAudioUrl;
+        await audioPlayer.play();
+        setStatus("speechStatus", `${sourceLabel} 已开始后端 TTS 播报，voice = ${data.voice}。`, false);
+        setOutput("后端播报详情", {
+          model: data.model,
+          voice: data.voice,
+          mime_type: data.mime_type,
+          response_format: data.response_format,
+        });
+      }
+
+      async function playTextAsSpeech(text, sourceLabel = "回答") {
+        if (!text || text === "暂无回答") {
+          setStatus("speechStatus", `${sourceLabel}没有可播报的内容。`, true);
+          return;
+        }
+
+        stopAnswerPlayback();
+        const mode = getSpeechMode();
+        const modeLabel = mode === "tts" ? "后端 TTS" : "浏览器播报";
+        setStatus("speechStatus", `正在使用${modeLabel}...`, false);
+
+        if (mode === "browser") {
+          try {
+            await playBrowserSpeech(text, sourceLabel);
+            return;
+          } catch (browserError) {
+            setStatus("speechStatus", "浏览器播报失败，正在切换到后端 TTS...", false);
+            try {
+              await playBackendSpeech(text, sourceLabel);
+              return;
+            } catch (ttsError) {
+              setStatus("speechStatus", ttsError.message || browserError.message, true);
+              setOutput("播报失败", {
+                browser_error: browserError.message,
+                backend_error: ttsError.message,
+              });
+              return;
+            }
+          }
+        }
+
+        try {
+          await playBackendSpeech(text, sourceLabel);
+        } catch (backendError) {
+          try {
+            await playBrowserSpeech(text, sourceLabel);
+          } catch (browserError) {
+            setStatus("speechStatus", backendError.message || browserError.message, true);
+            setOutput("播报失败", {
+              backend_error: backendError.message,
+              browser_error: browserError.message,
+            });
+          }
+        }
+      }
+
+      function playAnswerAsSpeech() {
+        const text = (state.lastSpeechText || answerBoxEl.textContent || "").trim();
+        return playTextAsSpeech(text, "当前回答");
+      }
+
+      window.playTextAsSpeech = playTextAsSpeech;
+      window.stopAnswerPlayback = stopAnswerPlayback;
+
+      if (playAnswerBtnEl) {
+        playAnswerBtnEl.addEventListener("click", playAnswerAsSpeech);
+      }
+      if (stopAnswerBtnEl) {
+        stopAnswerBtnEl.addEventListener("click", stopAnswerPlayback);
+      }
+      if (chatTranscript) {
+        chatTranscript.addEventListener("click", async (event) => {
+            const speakBtn = event.target.closest(".message-speak-btn");
+            if (speakBtn) {
+              const index = Number(speakBtn.dataset.messageIndex);
+              const message = Number.isInteger(index) ? state.chatMessages[index] : null;
+              const text = message ? stripMarkdownMarkers(message.content || "") : "";
+            await playTextAsSpeech(String(text || "").trim(), "该消息");
+              return;
+            }
+          const stopBtn = event.target.closest(".message-stop-btn");
+          if (stopBtn) {
+            stopAnswerPlayback();
+          }
+        });
+      }
+      audioPlayer.addEventListener("ended", revokeAudioUrl);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+name = "travel-agent-worker"
+main = "src/index.ts"
+compatibility_date = "2026-04-20"
+
+[vars]
+OPENAI_MODEL = "gpt-5.2"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "travel-agent-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+preview_database_id = "REPLACE_WITH_YOUR_PREVIEW_D1_DATABASE_ID"

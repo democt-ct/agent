@@ -1,0 +1,35 @@
+[
+  {
+    "id": "metro_2day",
+    "city": "上海",
+    "raw_input": "上海玩2天，经典地标+本地好吃的，晚上也想逛逛，但不要太累",
+    "expectations": [
+      "no_long_sentence_poi",
+      "must_have_signature_anchor",
+      "must_have_food_or_food_area",
+      "must_have_afternoon_or_evening"
+    ]
+  },
+  {
+    "id": "prefecture_3day",
+    "city": "泉州",
+    "raw_input": "泉州玩3天，偏轻松，想看本地街区、老店和代表性景点，不想来回折返",
+    "expectations": [
+      "no_generic_discovery_poi_promoted",
+      "must_have_local_experience",
+      "must_have_signature_anchor",
+      "limited_major_transfers"
+    ]
+  },
+  {
+    "id": "food_landmark_city",
+    "city": "西安",
+    "raw_input": "西安2天，经典必打卡加本地小吃，晚上还能继续逛，不要普通商场凑数",
+    "expectations": [
+      "must_have_signature_anchor",
+      "must_have_food_or_food_area",
+      "must_have_night_option",
+      "no_ordinary_business_anchor"
+    ]
+  }
+]

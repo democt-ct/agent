@@ -1,0 +1,17 @@
+{
+  "name": "travel-agent-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "codex:login-chatgpt": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/switch-codex-to-chatgpt-login.ps1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260405.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.12.0"
+  }
+}

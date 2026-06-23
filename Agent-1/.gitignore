@@ -1,0 +1,12 @@
+# Local settings (含真实 API 密钥，禁止提交)
+app/config/local_settings.py
+# 向后兼容路径（已迁移到 app/config/，但保留以防残留副本）
+app/mcp/local_settings.py
+.env
+.env.local
+.cloudflared/
+
+# Test database
+test.db
+test.db-wal
+test.db-shm

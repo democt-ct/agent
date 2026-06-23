@@ -1,0 +1,7 @@
+tunnel: agent-1
+credentials-file: C:\Users\democt\.cloudflared\YOUR-TUNNEL-ID.json
+
+ingress:
+  - hostname: agent.313070.xyz
+    service: http://127.0.0.1:8000
+  - service: http_status:404

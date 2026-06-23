@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>质量评估控制台</title>
+<link rel="stylesheet" href="/static/css/evaluate.css">
+</head>
+<body>
+<div class="container">
+  <h1>
+    🧪 质量评估控制台
+    <small>Agent 回答质量回归验证</small>
+  </h1>
+
+  <div class="server-status" id="serverStatus">
+    <span class="server-dot" id="serverDot"></span>
+    <span id="serverText">正在检查服务状态...</span>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">总用例</div><div class="stat-value" id="totalCases">0</div></div>
+    <div class="stat"><div class="stat-label">通过</div><div class="stat-value green" id="passCount">0</div></div>
+    <div class="stat"><div class="stat-label">失败</div><div class="stat-value red" id="failCount">0</div></div>
+    <div class="stat"><div class="stat-label">运行中</div><div class="stat-value yellow" id="runningCount">0</div></div>
+    <div class="stat"><div class="stat-label">通过率</div><div class="stat-value blue" id="passRate">-</div></div>
+    <div class="stat"><div class="stat-label">均分</div><div class="stat-value orange" id="avgScore">-</div></div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="metrics-panel" id="metricsPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>📊 聚合指标</strong>
+      <span style="font-size:12px;color:var(--text-dim)" id="metricsSummary"></span>
+    </div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+    <div class="data-note" id="dataNote"></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" id="runAllBtn">▶ 运行全部</button>
+    <button id="runPassedBtn">↻ 重试失败</button>
+    <button id="clearBtn" class="danger">✕ 清空结果</button>
+    <button id="exportBtn" style="background:var(--surface2);border-color:var(--blue);color:var(--blue)">📥 导出报告</button>
+    <input type="text" id="apiBase" value="" placeholder="API 地址 (默认当前)">
+  </div>
+
+  <div class="filters" id="filterBar"></div>
+
+  <div class="table" id="resultsTable">
+    <div class="table-header">
+      <span>用例 ID</span>
+      <span>问题</span>
+      <span>意图判定</span>
+      <span>状态</span>
+      <span>得分</span>
+      <span>耗时</span>
+      <span>操作</span>
+    </div>
+    <div id="tableBody"></div>
+  </div>
+
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <span><strong id="detailTitle"></strong></span>
+      <button class="small" id="closeDetail">✕ 关闭</button>
+    </div>
+    <div class="detail-tabs" id="detailTabs">
+      <div class="detail-tab active" data-tab="overview">总览</div>
+      <div class="detail-tab" data-tab="ragas">RAGAS 评估</div>
+      <div class="detail-tab" data-tab="intent">意图分析</div>
+      <div class="detail-tab" data-tab="keywords">关键词</div>
+      <div class="detail-tab" data-tab="trace">执行链路</div>
+      <div class="detail-tab" data-tab="answer">完整回答</div>
+    </div>
+    <div class="detail-content" id="detailContent"></div>
+  </div>
+</div>
+
+<script src="/static/js/evaluate.js"></script>
+</body>
+</html>

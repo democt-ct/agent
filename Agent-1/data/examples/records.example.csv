@@ -1,0 +1,4 @@
+patient_code,record_type,title,department,doctor_name,diagnosis,treatment_plan,medications,notes
+BULK001,outpatient,高血压复诊,心内科,王医生,原发性高血压2级,低盐饮食+药物治疗,缬沙坦80mg qd,规律服药
+BULK001,outpatient,年度体检,体检中心,李医生,混合型高脂血症,阿托伐他汀20mg qn,阿托伐他汀,注意肝功能监测
+BULK002,follow_up,糖尿病随访,内分泌科,赵医生,2型糖尿病药物控制可,继续当前方案+饮食控制,二甲双胍500mg bid,血糖稳定

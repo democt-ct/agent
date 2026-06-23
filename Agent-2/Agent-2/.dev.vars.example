@@ -1,0 +1,3 @@
+OPENAI_API_KEY=ollama
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1/
+OPENAI_MODEL=modelscope.cn/unsloth/DeepSeek-R1-Distill-Qwen-7B-GGUF:latest
