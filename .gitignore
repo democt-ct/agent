@@ -1,0 +1,75 @@
+# 敏感信息
+.env
+.env.local
+.env.*.local
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 前端依赖
+node_modules/
+frontend/node_modules/
+
+# 测试数据库
+*.db
+*.db-wal
+*.db-shm
+
+# 向量数据库
+chroma_db/
+.chroma/
+
+# 数据目录（按需取消注释）
+# data/
+
+# 临时文件
+*.tmp
+*.log
+tmp/
+
+# IDE
+.vscode/
+.idea/
+
+# Docker 云隧道
+.cloudflared/
+.cfargotunnel.com
+
+# 模型缓存
+.cache/
+
+# 构建产物
+dist/
+build/
+*.egg-info/
+
+# Streamlit
+.streamlit/
+
+# Wrangler (Cloudflare Workers)
+.wrangler/
+
+# 测试缓存
+.pytest_cache/
+
+# 代码分析工具
+.codegraph/
+.reasonix/
+
+# MiMoCode
+.mimocode/
+
+# 其他
+nul
+*.zip
+*.7z
+*.tar.gz
