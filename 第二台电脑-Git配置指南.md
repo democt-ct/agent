@@ -79,6 +79,8 @@ git clone git@github.com:democt-ct/agent.git D:\zhuomian\agent
 
 ## 🔄 日常使用方法
 
+> 💡 更详细的操作指南见 **[项目运行指南.md](项目运行指南.md)**，包含每个项目如何启动、端口号、常见问题等。
+
 ### 每次工作前（拉取最新代码）
 
 ```powershell
@@ -95,21 +97,23 @@ git commit -m "简述改了什么"
 git push
 ```
 
-### 实战示例
+### 完整节奏
 
 ```powershell
-# 早上到工位
+# 1️⃣ 到工位 → 先 pull
 cd D:\zhuomian\agent
-git pull                    # 拉取昨晚在另一台电脑上的修改
+git pull
 
-# ... 修改 Agent-1 代码 ...
+# 2️⃣ 改代码 → 写你的东西
 
-# 下班前
+# 3️⃣ 走之前 → add + commit + push
 cd D:\zhuomian\agent
 git add -A
-git commit -m "优化 Agent-1 MCP 路由逻辑"
-git push                    # 推送到 GitHub，回家后另一台电脑就能 git pull 拿到
+git commit -m "改了什么"
+git push
 ```
+
+**记住这个顺序：pull → 改代码 → add → commit → push，每次都是这套。**
 
 ---
 
