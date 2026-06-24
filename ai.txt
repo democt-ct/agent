@@ -1,0 +1,3 @@
+UPDATE `t_sys_config`
+SET `conf_value` = '[{"label": "通用技能"}, {"label": "规划建设"}, {"label": "电网运行"}, {"label": "设备管理"}, {"label": "营销服务"}, {"label": "作业管控"}, {"label": "企业治理"},{"label": "数字化"}]'
+WHERE `conf_key` = 'skill_category';

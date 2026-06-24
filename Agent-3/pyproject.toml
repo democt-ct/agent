@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "enterprise-multi-agent"
+version = "0.1.0"
+description = "企业多专家 Agent 系统 — 教学项目 + 求职作品集"
+authors = []
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+openai = ">=1.50"
+langgraph = ">=0.2"
+chromadb = ">=0.6"
+langchain-text-splitters = ">=0.3"
+pypdf = ">=5"
+python-docx = ">=1"
+rank-bm25 = ">=0.2"
+cohere = ">=5"
+python-dotenv = ">=1"
+streamlit = ">=1.40"
+click = ">=8"
+pytest = ">=8"
+ruff = ">=0.7"
+watchdog = ">=6"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

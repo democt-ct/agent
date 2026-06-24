@@ -1,0 +1,54 @@
+# 企业多专家 Agent 系统 — Docker Compose 一键启动
+#
+# 启动: docker-compose up -d
+# 停止: docker-compose down
+# 日志: docker-compose logs -f app
+
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: enterprise-agent
+    ports:
+      - "${API_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=${APP_ENV:-dev}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-v4-flash}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - JWT_SECRET=${JWT_SECRET}
+      - API_PORT=8080
+      - TRACE_ENABLED=${TRACE_ENABLED:-false}
+      - MEMORY_ENABLED=${MEMORY_ENABLED:-false}
+      - RERANK_ENABLED=${RERANK_ENABLED:-false}
+      - PLANNER_ENABLED=${PLANNER_ENABLED:-false}
+    volumes:
+      # 持久化数据
+      - ./data:/app/data
+      - ./chroma_db:/app/chroma_db
+      - ./traces:/app/traces
+      # 开发模式：挂载源码 + 知识库实现热加载
+      # - ./src:/app/src
+      # - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # 可选：nginx 反代（HTTPS 终止）
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: agent-nginx
+  #   ports:
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certs:/etc/nginx/certs:ro
+  #   depends_on:
+  #     - app

@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aiphoto-postgres
+    environment:
+      POSTGRES_USER: aiphoto
+      POSTGRES_PASSWORD: aiphoto123
+      POSTGRES_DB: ai_photo_agent
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: aiphoto-redis
+    ports:
+      - "6381:6379"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+.env
+chroma_db
+traces
+*.egg-info
+dist
+.git
+node_modules
+ui-ux-pro-max-skill

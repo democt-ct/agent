@@ -1,0 +1,155 @@
+{
+  "total": 5,
+  "passed": 4,
+  "routing_accuracy": 0.8,
+  "tool_accuracy": 0.5,
+  "retrieval_accuracy": 1.0,
+  "avg_time_ms": 2634.0,
+  "avg_tokens": 0.0,
+  "by_category": {
+    "hr": {
+      "total": 5,
+      "routing_ok": 4,
+      "tools_ok": 1,
+      "tool_total": 2,
+      "routing_accuracy": 0.8,
+      "tool_accuracy": 0.5
+    }
+  },
+  "results": [
+    {
+      "case_id": "eval_001",
+      "query": "我今年还剩几天年假？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [
+        "get_leave_balance"
+      ],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [
+        "年假管理制度.md"
+      ],
+      "retrieved_sources": [
+        "绩效考核制度.md",
+        "薪酬福利说明.md",
+        "请假审批流程.md",
+        "年假管理制度.md",
+        "入职与离职管理流程.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "",
+      "processing_time_ms": 11064,
+      "tokens_used": 0,
+      "error": null
+    },
+    {
+      "case_id": "eval_002",
+      "query": "请3天病假怎么申请？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "error",
+      "routing_correct": false,
+      "routing_method": "error",
+      "routing_confidence": 0.0,
+      "expected_tools": [
+        "submit_leave_request"
+      ],
+      "actual_tools": [],
+      "tools_correct": false,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": false,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": "Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': '91bea864-3b8a-4775-8187-4419b77d1772'}}"
+    },
+    {
+      "case_id": "eval_003",
+      "query": "公司社保公积金缴纳比例是多少？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.8,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [
+        "薪酬福利说明.md"
+      ],
+      "retrieved_sources": [
+        "请假审批流程.md",
+        "年假管理制度.md",
+        "薪酬福利说明.md",
+        "绩效考核制度.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "",
+      "processing_time_ms": 808,
+      "tokens_used": 0,
+      "error": null
+    },
+    {
+      "case_id": "eval_004",
+      "query": "年终奖什么时候发？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "病假和医疗期规定.md",
+        "薪酬福利说明.md",
+        "请假审批流程.md",
+        "年假管理制度.md",
+        "入职与离职管理流程.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "",
+      "processing_time_ms": 636,
+      "tokens_used": 0,
+      "error": null
+    },
+    {
+      "case_id": "eval_005",
+      "query": "迟到三次会怎么处理？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "绩效考核制度.md",
+        "考勤政策.md",
+        "病假和医疗期规定.md",
+        "请假审批流程.md",
+        "年假管理制度.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "",
+      "processing_time_ms": 662,
+      "tokens_used": 0,
+      "error": null
+    }
+  ],
+  "errors": [
+    "eval_002: Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': '91bea864-3b8a-4775-8187-4419b77d1772'}}"
+  ]
+}

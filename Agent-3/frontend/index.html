@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企业多专家 Agent 工作台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app" class="workspace-shell">
+    <nav class="nav-rail" aria-label="主导航">
+      <div class="nav-logo" title="Agent 工作台">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.91 5.09L19 10l-5.09 1.91L12 17l-1.91-5.09L5 10l5.09-1.91z"/><path d="M18 14l.91 2.09L21 17l-2.09.91L18 20l-.91-2.09L15 17l2.09-.91z"/></svg>
+      </div>
+      <div class="nav-items">
+        <button class="nav-item active" data-panel="chat" title="对话" aria-label="对话">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </button>
+        <button class="nav-item" data-panel="apps" title="我的申请" aria-label="我的申请">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+        </button>
+        <button class="nav-item" data-panel="approvals" title="待审批" aria-label="待审批">
+          <span class="nav-badge hidden" id="approval-nav-badge">0</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </button>
+        <button class="nav-item" data-panel="notifs" title="通知" aria-label="通知">
+          <span class="nav-badge hidden" id="notif-nav-badge">0</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </button>
+        <button class="nav-item" data-panel="traces" title="执行追踪" aria-label="执行追踪">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </button>
+        <button class="nav-item" title="管理后台" aria-label="管理后台" onclick="location.href='/admin.html'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+      <div class="nav-bottom">
+        <button class="nav-user" id="nav-user" title="用户信息" aria-label="用户信息" style="display:none"><span id="nav-avatar">U</span></button>
+        <button class="nav-item" id="nav-login-btn" title="登录" aria-label="登录">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <main class="content-area">
+      <section class="panel panel-chat" id="panel-chat">
+        <aside class="chat-sidebar" id="sidebar">
+          <div class="chat-sidebar-header">
+            <div>
+              <p class="eyebrow">Workspace</p>
+              <h2>对话历史</h2>
+            </div>
+            <button class="btn-new-chat" id="btn-new-chat">+ 新对话</button>
+            <button class="btn-collapse-sidebar" id="btn-collapse-sidebar" title="折叠对话历史" aria-label="折叠对话历史">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          </div>
+          <nav class="session-list" id="session-list"></nav>
+          <div class="sidebar-footer" id="agent-status-bar">
+            <button class="status-toggle" id="status-toggle" title="收起专家状态">
+              <span class="status-toggle-label">专家在线</span>
+              <svg class="status-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="status-list" id="status-list"></div>
+          </div>
+        </aside>
+
+        <div class="chat-main main">
+          <header class="topbar">
+            <button class="btn-icon" id="btn-toggle-sidebar" title="折叠对话历史" aria-label="折叠对话历史">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+            </button>
+            <div class="topbar-title" id="topbar-title">新对话</div>
+            <div class="topbar-agent-badge" id="topbar-agent-badge">
+              <span id="topbar-agent-name">智能助手</span>
+            </div>
+            <button class="btn-icon" id="btn-clear-chat" title="清空对话" aria-label="清空对话">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </header>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="input-area">
+            <div class="input-wrapper">
+              <textarea id="chat-input" rows="1" placeholder="输入问题，例如：我的年假余额和报销标准分别是多少"></textarea>
+              <button class="btn-send" id="btn-send" disabled>
+                <span>发送</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              </button>
+            </div>
+            <div class="input-hint">Enter 发送，Shift + Enter 换行</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hidden" id="panel-apps">
+        <div class="panel-header">
+          <div><p class="eyebrow">Applications</p><h1>我的申请</h1><p>集中查看请假、报销和 IT 工单，不再藏在侧边栏里。</p></div>
+          <button class="panel-primary-btn" id="btn-open-leave">提交请假</button>
+        </div>
+        <div class="panel-toolbar">
+          <button class="chip-btn active" data-app-filter="">全部</button>
+          <button class="chip-btn" data-app-filter="leave">请假</button>
+          <button class="chip-btn" data-app-filter="expense">报销</button>
+          <button class="chip-btn" data-app-filter="ticket">IT 工单</button>
+        </div>
+        <div class="panel-list" id="apps-list"><div class="empty-hint">登录后查看你的申请记录。</div></div>
+      </section>
+
+      <section class="panel hidden" id="panel-approvals">
+        <div class="panel-header">
+          <div><p class="eyebrow">Approvals</p><h1>待审批</h1><p>审批事项在独立面板中处理，避免挤在聊天侧栏。</p></div>
+          <button class="panel-secondary-btn" id="btn-refresh-approvals">刷新</button>
+        </div>
+        <div class="panel-list" id="approval-list"><div class="empty-hint">登录后查看待审批事项。</div></div>
+      </section>
+
+      <section class="panel hidden" id="panel-notifs">
+        <div class="panel-header">
+          <div><p class="eyebrow">Notifications</p><h1>通知中心</h1><p>审批结果和系统消息统一在这里查看。</p></div>
+          <button class="panel-secondary-btn" id="btn-mark-read">全部已读</button>
+        </div>
+        <div class="panel-list" id="notif-list"><div class="empty-hint">登录后查看通知。</div></div>
+      </section>
+
+      <section class="panel hidden" id="panel-traces">
+        <div class="panel-header">
+          <div><p class="eyebrow">Observability</p><h1>执行追踪</h1><p>查看最近的 Agent 路由、工具调用和执行链路。</p></div>
+          <button class="panel-secondary-btn" id="btn-refresh-traces">刷新</button>
+        </div>
+        <div class="panel-list" id="trace-list"><div class="empty-hint">点击刷新加载执行追踪。</div></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="user-popup hidden" id="user-popup">
+    <div class="user-popup-head">
+      <div class="user-card-avatar" id="user-popup-avatar">U</div>
+      <div><div class="user-card-name" id="user-popup-name">未登录</div><div class="user-card-dept" id="user-popup-dept">请选择用户登录</div></div>
+    </div>
+    <div class="user-popup-grid" id="user-popup-grid"></div>
+    <button class="panel-secondary-btn full" id="btn-logout">退出登录</button>
+  </div>
+
+  <div class="login-modal hidden" id="login-modal">
+    <div class="login-dialog">
+      <h2>登录工作台</h2>
+      <p>请输入企业账号登录。</p>
+      <label>员工 ID</label>
+      <select id="login-user-id" autocomplete="username">
+        <option value="" disabled selected>-- 请选择员工 --</option>
+        <option value="EMP001">张三 · 工程部员工</option>
+        <option value="EMP002">李四 · 工程部经理</option>
+        <option value="EMP003">王五 · HR经理</option>
+        <option value="EMP004">赵六 · 财务经理</option>
+        <option value="EMP005">孙七 · IT经理</option>
+        <option value="EMP006">周八 · IT员工</option>
+      </select>
+      <label>密码</label>
+      <input id="login-password" type="password" autocomplete="current-password" placeholder="请输入密码" value="123456">
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="login-cancel">取消</button>
+        <button class="modal-btn modal-btn-confirm" id="login-submit">登录</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-icon" id="modal-icon">⚠</div>
+      <div class="modal-text" id="modal-text">确定？</div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="modal-cancel">取消</button>
+        <button class="modal-btn modal-btn-confirm" id="modal-confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="leave-modal">
+    <div class="modal-dialog leave-dialog">
+      <h2>提交请假</h2>
+      <label>假期类型</label>
+      <select id="leave-type"><option>年假</option><option>病假</option><option>事假</option></select>
+      <label>开始日期</label>
+      <input id="leave-start" type="date">
+      <label>结束日期</label>
+      <input id="leave-end" type="date">
+      <label>原因</label>
+      <textarea id="leave-reason" rows="3" placeholder="可选"></textarea>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="leave-cancel">取消</button>
+        <button class="modal-btn modal-btn-confirm" id="leave-submit">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script type="module" src="/app.js"></script>
+  <script type="module">
+    import { getToken, setToken, clearToken, getUser, setUser, authHeaders, scheduleTokenRefresh, startAutoRefresh, stopAutoRefresh } from './modules/auth.js';
+    import { esc, fmtDate } from './modules/shared.js';
+    // 暴露到 window 供 app.js 和 panel 逻辑共用
+    window.getToken = getToken;
+    window.setToken = setToken;
+    window.clearToken = clearToken;
+    window.getUser = getUser;
+    window.setUser = setUser;
+    window.authHeaders = authHeaders;
+    window.scheduleTokenRefresh = scheduleTokenRefresh;
+    window.stopAutoRefresh = stopAutoRefresh;
+    window.__authToken = getToken();
+    window.__authUser = getUser();
+    window.esc = esc;
+    window.fmtDate = fmtDate;
+    startAutoRefresh();
+  </script>
+  <script>
+    (function(){
+      const API = window.location.origin + '/api';
+      const $ = s => document.querySelector(s);
+      const $$ = s => Array.from(document.querySelectorAll(s));
+      let appFilter = '';
+
+      function headers(json){
+        const h = json ? {'Content-Type':'application/json'} : {};
+        if (window.__authToken) h.Authorization = 'Bearer ' + window.__authToken;
+        return h;
+      }
+      function fmtDate(s){ return s ? String(s).slice(0, 10) : '-'; }
+      function esc(s){ const d=document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+      function statusClass(s){ return String(s || '').replace(/[^a-zA-Z0-9一-龥_-]/g, ''); }
+
+      function switchPanel(name){
+        $$('.nav-item[data-panel]').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+        $$('.content-area > .panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + name));
+        if (name === 'apps') loadApps();
+        if (name === 'approvals') loadApprovals();
+        if (name === 'notifs') loadNotifications();
+        if (name === 'traces') loadTraces();
+      }
+      $$('.nav-item[data-panel]').forEach(btn => btn.addEventListener('click', () => switchPanel(btn.dataset.panel)));
+
+      function syncUserUI(){
+        const u = window.__authUser;
+        $('#nav-login-btn').style.display = u ? 'none' : 'flex';
+        $('#nav-user').style.display = u ? 'flex' : 'none';
+        if (!u) return;
+        const initial = (u.name || u.user_id || 'U').slice(0, 1).toUpperCase();
+        $('#nav-avatar').textContent = initial;
+        $('#user-popup-avatar').textContent = initial;
+        $('#user-popup-name').textContent = u.name || u.user_id;
+        $('#user-popup-dept').textContent = [u.department, u.role].filter(Boolean).join(' · ');
+      }
+
+      async function loadMe(){
+        if (!window.__authToken) { syncUserUI(); return; }
+        const r = await fetch(API + '/me', {headers: headers()}).catch(() => null);
+        if (!r || !r.ok) { syncUserUI(); return; }
+        const me = await r.json();
+        window.__authUser = Object.assign({}, window.__authUser || {}, me);
+        localStorage.setItem('auth_user', JSON.stringify(window.__authUser));
+        $('#user-popup-grid').innerHTML = `
+          <div><span>员工</span><strong>${esc(me.user_id)}</strong></div>
+          <div><span>部门</span><strong>${esc(me.department || '-')}</strong></div>
+          <div><span>年假</span><strong>${esc((me.balance && me.balance.remaining_days) || '-')} 天</strong></div>
+          <div><span>经理</span><strong>${esc(me.manager_name || '-')}</strong></div>`;
+        syncUserUI();
+      }
+
+      async function doLogin(){
+        const userId = $('#login-user-id').value.trim();
+        if (!userId) return alert('请选择员工');
+        const body = {user_id: userId, password: $('#login-password').value};
+        const r = await fetch(API + '/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) return alert(d.error || '登录失败');
+        window.__authToken = d.token;
+        window.__authUser = d.user;
+        localStorage.setItem('auth_token', d.token);
+        localStorage.setItem('auth_user', JSON.stringify(d.user));
+        if (window.scheduleTokenRefresh) window.scheduleTokenRefresh(); // 启动自动刷新
+        $('#login-modal').classList.add('hidden');
+        await loadMe();
+        if (window.__reloadSessions) window.__reloadSessions();
+        refreshBadges();
+      }
+
+      function logout(){
+        window.__authToken = '';
+        window.__authUser = null;
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        if (window.stopAutoRefresh) window.stopAutoRefresh();
+        $('#user-popup').classList.add('hidden');
+        $('#user-popup-grid').innerHTML = '';
+        syncUserUI();
+        if (window.__reloadSessions) window.__reloadSessions();
+      }
+
+      async function loadApps(){
+        const list = $('#apps-list');
+        if (!window.__authToken) { list.innerHTML = '<div class="empty-hint">请先登录后查看申请记录。</div>'; return; }
+        list.innerHTML = '<div class="empty-hint">加载中...</div>';
+        const url = API + '/applications' + (appFilter ? '?type=' + encodeURIComponent(appFilter) : '');
+        const r = await fetch(url, {headers: headers()}).catch(() => null);
+        if (!r || !r.ok) { list.innerHTML = '<div class="empty-hint">申请记录加载失败。</div>'; return; }
+        const d = await r.json();
+        const apps = d.applications || [];
+        if (!apps.length) { list.innerHTML = '<div class="empty-hint">暂无申请记录。</div>'; return; }
+        list.innerHTML = apps.map(a => `
+          <article class="panel-card" data-app-type="${esc(a.app_type)}" data-app-id="${esc(a.id)}" onclick="showAppDetail('${esc(a.app_type)}','${esc(a.id)}')" style="cursor:pointer">
+            <div class="panel-card-main">
+              <div class="panel-card-title">${esc(a.app_type_label || a.app_type)} · ${esc(a.subtype || a.description || a.id)}</div>
+              <div class="panel-card-meta">${esc(a.id)} · ${fmtDate(a.start_date || a.created_at)}${a.end_date ? ' 至 ' + fmtDate(a.end_date) : ''}${a.amount ? ' · ¥' + esc(a.amount) : ''}</div>
+            </div>
+            <span class="status-pill status-${statusClass(a.status)}">${esc(a.status_label || a.status)}</span>
+          </article>`).join('');
+      }
+
+      async function loadApprovals(){
+        const list = $('#approval-list');
+        if (!window.__authToken) { list.innerHTML = '<div class="empty-hint">请先登录后查看待审批事项。</div>'; return; }
+        list.innerHTML = '<div class="empty-hint">加载中...</div>';
+        const r = await fetch(API + '/approvals/pending', {headers: headers()}).catch(() => null);
+        if (!r || !r.ok) { list.innerHTML = '<div class="empty-hint">待审批加载失败。</div>'; setApprovalBadge(0); return; }
+        const d = await r.json();
+        const items = d.pending || [];
+        setApprovalBadge(items.length);
+        if (!items.length) { list.innerHTML = '<div class="empty-hint">暂无待审批事项。</div>'; return; }
+        list.innerHTML = items.map(x => {
+          const detail = x.leave ? `${x.leave.leave_type} · ${fmtDate(x.leave.start_date)} 至 ${fmtDate(x.leave.end_date)} · ${x.leave.total_days} 天` : `${x.expense.expense_type} · ¥${x.expense.amount}`;
+          return `<article class="panel-card approval-wide">
+            <div class="panel-card-main">
+              <div class="panel-card-title">${esc(x.applicant.name)} 的${x.record_type === 'leave' ? '请假' : '报销'}审批</div>
+              <div class="panel-card-meta">${esc(detail)} · ${esc(x.approver_role || '')}</div>
+              <div class="panel-card-desc">${esc((x.leave && x.leave.reason) || (x.expense && x.expense.description) || '')}</div>
+            </div>
+            <div class="panel-card-actions">
+              <button class="btn-approve-sm" data-approve="${esc(x.step_id)}">通过</button>
+              <button class="btn-reject-sm" data-reject="${esc(x.step_id)}">驳回</button>
+            </div>
+          </article>`;
+        }).join('');
+      }
+      window.__loadApprovals = loadApprovals;
+
+      async function actApproval(stepId, ok){
+        const comment = ok ? '同意' : (prompt('请输入驳回理由') || '不同意');
+        const url = API + '/approvals/' + encodeURIComponent(stepId) + (ok ? '/approve' : '/reject');
+        const r = await fetch(url, {method:'POST', headers: headers(true), body: JSON.stringify({comment})}).catch(() => null);
+        if (!r || !r.ok) return alert('操作失败');
+        loadApprovals(); loadNotifications();
+      }
+      window.doApprove = stepId => actApproval(stepId, true);
+      window.doReject = stepId => actApproval(stepId, false);
+
+      async function loadNotifications(){
+        const list = $('#notif-list');
+        if (!window.__authToken) { list.innerHTML = '<div class="empty-hint">请先登录后查看通知。</div>'; return; }
+        list.innerHTML = '<div class="empty-hint">加载中...</div>';
+        const r = await fetch(API + '/notifications', {headers: headers()}).catch(() => null);
+        if (!r || !r.ok) { list.innerHTML = '<div class="empty-hint">通知加载失败。</div>'; setNotifBadge(0); return; }
+        const d = await r.json();
+        setNotifBadge(d.unread_count || 0);
+        const items = d.notifications || [];
+        if (!items.length) { list.innerHTML = '<div class="empty-hint">暂无通知。</div>'; return; }
+        const notifList = document.getElementById('notif-list');
+        notifList.innerHTML = items.map(n => {
+          const hasLink = n.link_type && n.link_id;
+          let html = `<article class="panel-card notif-item ${n.is_read ? '' : 'unread'}"`;
+          if (hasLink) {
+            html += ` data-link-type="${n.link_type}" data-link-id="${n.link_id}" style="cursor:pointer"`;
+          }
+          html += `>
+            <div class="panel-card-main"><div class="panel-card-title">${esc(n.title || n.type || '通知')}</div><div class="panel-card-desc">${esc(n.body || n.content || n.message || '')}</div><div class="panel-card-meta">${esc(n.created_at || '')}</div></div>
+          </article>`;
+          return html;
+        }).join('');
+        // 事件委托：从 DOM 属性读链接
+        if (!notifList._bound) {
+          notifList._bound = true;
+          notifList.addEventListener('click', e => {
+            const card = e.target.closest('.panel-card');
+            if (!card) return;
+            const type = card.dataset.linkType;
+            const id = card.dataset.linkId;
+            if (type && id) showAppDetail(type, id);
+          });
+        }
+      }
+
+      async function loadTraces(){
+        const list = $('#trace-list');
+        list.innerHTML = '<div class="empty-hint">加载中...</div>';
+        const r = await fetch(API + '/traces').catch(() => null);
+        if (!r || !r.ok) { list.innerHTML = '<div class="empty-hint">执行追踪加载失败。</div>'; return; }
+        const d = await r.json();
+        const traces = d.traces || [];
+        if (!traces.length) { list.innerHTML = '<div class="empty-hint">暂无执行追踪。</div>'; return; }
+        list.innerHTML = traces.map(t => `<article class="panel-card trace-card">
+          <div class="panel-card-main"><div class="panel-card-title">${esc(t.query || t.session_id || t.file || 'Trace')}</div><div class="panel-card-meta">${esc(t.created_at || t.timestamp || '')}</div><pre>${esc(JSON.stringify(t, null, 2)).slice(0, 1200)}</pre></div>
+        </article>`).join('');
+      }
+
+      async function markAllRead(){
+        if (!window.__authToken) return;
+        await fetch(API + '/notifications/read', {method:'POST', headers: headers(true), body: JSON.stringify({ids:null})}).catch(() => null);
+        loadNotifications();
+      }
+      window.__toggleNotif = () => switchPanel('notifs');
+      window.__markAllRead = markAllRead;
+
+      function setNotifBadge(n){ const b = $('#notif-nav-badge'); b.textContent = n; b.classList.toggle('hidden', !n); }
+      function setApprovalBadge(n){ const b = $('#approval-nav-badge'); b.textContent = n; b.classList.toggle('hidden', !n); }
+      async function refreshBadges(){
+        if (!window.__authToken) { setNotifBadge(0); setApprovalBadge(0); return; }
+        fetch(API + '/notifications/count', {headers: headers()}).then(r => r.ok ? r.json() : null).then(d => d && setNotifBadge(d.unread_count || 0)).catch(() => {});
+        fetch(API + '/approvals/pending', {headers: headers()}).then(r => r.ok ? r.json() : null).then(d => d && setApprovalBadge(d.total || 0)).catch(() => {});
+      }
+
+      function openLeaveForm(){
+        if (!window.__authToken) return $('#login-modal').classList.remove('hidden');
+        const today = new Date().toISOString().slice(0,10);
+        $('#leave-start').value = today;
+        $('#leave-end').value = today;
+        $('#leave-modal').classList.remove('hidden');
+      }
+      window.__openLeaveForm = openLeaveForm;
+
+      async function submitLeave(){
+        const body = {leave_type: $('#leave-type').value, start_date: $('#leave-start').value, end_date: $('#leave-end').value, reason: $('#leave-reason').value};
+        const r = await fetch(API + '/leaves', {method:'POST', headers: headers(true), body: JSON.stringify(body)}).catch(() => null);
+        const d = r ? await r.json().catch(() => ({})) : {};
+        if (!r || !r.ok || d.error) return alert(d.error || '提交失败');
+        $('#leave-modal').classList.add('hidden');
+        loadApps(); refreshBadges();
+      }
+      window.__submitLeave = submitLeave;
+
+      async function showAppDetail(appType, appId) {
+        const url = API + '/applications/' + encodeURIComponent(appType) + '/' + encodeURIComponent(appId);
+        const r = await fetch(url, {headers: headers()}).catch(e => { console.error('fetch failed', url, e); return null; });
+        if (!r || !r.ok) {
+          const errText = r ? await r.text().catch(() => '') : '网络错误';
+          console.error('showAppDetail failed', url, r?.status, errText);
+          alert('加载详情失败 (' + (r?.status || '网络') + ')');
+          return;
+        }
+        const d = await r.json();
+        const a = d.application || d;
+        const status = a.status || '';
+        const nextStatus = appType === 'ticket'
+          ? (status === '待处理' || status === '处理中' ? '已完成' : null)
+          : null;
+        let detail = `<div style="line-height:1.8">`;
+        for (const [k, v] of Object.entries(a)) {
+          if (v == null || v === '') continue;
+          if (k === 'status') detail += `<div><strong>${k}:</strong> <span class="status-pill status-${statusClass(v)}">${esc(v)}</span></div>`;
+          else if (k === 'created_at' || k === 'updated_at' || k === 'start_date' || k === 'end_date') detail += `<div><strong>${k}:</strong> ${fmtDate(v)}</div>`;
+          else if (k === 'total_days' || k === 'amount_val' || k === 'amount') detail += `<div><strong>${k}:</strong> ${v}</div>`;
+          else detail += `<div><strong>${k}:</strong> ${esc(String(v).slice(0,200))}</div>`;
+        }
+        detail += `</div>`;
+        document.getElementById('modal-icon').textContent = '📋';
+        document.getElementById('modal-text').innerHTML = detail;
+        document.getElementById('modal-overlay').classList.remove('hidden');
+
+        const confirmBtn = document.getElementById('modal-confirm');
+        const cancelBtn = document.getElementById('modal-cancel');
+
+        // 删除按钮：只对 pending/draft/待处理 状态显示
+        const canDelete = true;  // 所有状态都可删除
+        let delBtn = document.getElementById('modal-delete-btn');
+        if (!delBtn) {
+          delBtn = document.createElement('button');
+          delBtn.id = 'modal-delete-btn';
+          delBtn.className = 'modal-btn';
+          delBtn.style.cssText = 'background:#DC2626;color:#fff;margin-right:auto';
+          cancelBtn.parentElement.insertBefore(delBtn, cancelBtn);
+        }
+        if (canDelete) {
+          delBtn.textContent = '删除';
+          delBtn.style.display = '';
+          delBtn.onclick = async () => {
+            if (!confirm('确定删除此申请记录？')) return;
+            delBtn.disabled = true;
+            const r = await fetch(API + '/applications/' + appType + '/' + appId, {
+              method: 'DELETE', headers: headers()
+            }).catch(() => null);
+            delBtn.disabled = false;
+            if (!r || !r.ok) { alert('删除失败'); return; }
+            document.getElementById('modal-overlay').classList.add('hidden');
+            loadApps(); loadNotifications();
+          };
+        } else {
+          delBtn.style.display = 'none';
+        }
+
+        if (nextStatus) {
+          confirmBtn.textContent = '标记已完成';
+          confirmBtn.style.display = '';
+          confirmBtn.style.background = 'var(--color-primary)';
+          confirmBtn.onclick = async () => {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '处理中...';
+            const ok = await updateAppStatus(appType, appId, nextStatus);
+            confirmBtn.disabled = false;
+            confirmBtn.style.display = '';
+            confirmBtn.style.background = '';
+            confirmBtn.onclick = null;
+            confirmBtn.textContent = '确定';
+            cancelBtn.textContent = '取消';
+            cancelBtn.onclick = null;
+            if (ok) {
+              document.getElementById('modal-overlay').classList.add('hidden');
+            } else {
+              confirmBtn.textContent = '标记「' + nextStatus + '」';
+            }
+          };
+        } else {
+          confirmBtn.style.display = 'none';
+        }
+        cancelBtn.textContent = '关闭';
+        cancelBtn.onclick = () => {
+          document.getElementById('modal-overlay').classList.add('hidden');
+          confirmBtn.style.display = '';
+          confirmBtn.style.background = '';
+          confirmBtn.onclick = null;
+          cancelBtn.textContent = '取消';
+          cancelBtn.onclick = null;
+          const db = document.getElementById('modal-delete-btn');
+          if (db) db.style.display = 'none';
+        };
+      }
+      window.showAppDetail = showAppDetail;
+
+      async function updateAppStatus(appType, appId, newStatus) {
+        const r = await fetch(API + '/applications/' + appType + '/' + appId + '/status', {
+          method: 'PATCH',
+          headers: headers(true),
+          body: JSON.stringify({status: newStatus}),
+        }).catch(() => null);
+        if (!r || !r.ok) { const err = r ? await r.text().catch(()=>'') : '网络错误'; alert('操作失败: ' + err); return false; }
+        loadApps();
+        loadNotifications();
+        return true;
+      }
+      window.updateAppStatus = updateAppStatus;
+
+      document.addEventListener('click', e => {
+        if (e.target.closest('[data-approve]')) actApproval(e.target.closest('[data-approve]').dataset.approve, true);
+        if (e.target.closest('[data-reject]')) actApproval(e.target.closest('[data-reject]').dataset.reject, false);
+      });
+      $('#nav-login-btn').addEventListener('click', () => $('#login-modal').classList.remove('hidden'));
+      $('#login-cancel').addEventListener('click', () => $('#login-modal').classList.add('hidden'));
+      $('#login-submit').addEventListener('click', doLogin);
+      let popupTimer = null;
+      const popup = $('#user-popup');
+      const navUser = $('#nav-user');
+      navUser.addEventListener('mouseenter', () => {
+        clearTimeout(popupTimer);
+        popup.classList.remove('hidden');
+      });
+      navUser.addEventListener('mouseleave', () => {
+        popupTimer = setTimeout(() => popup.classList.add('hidden'), 200);
+      });
+      popup.addEventListener('mouseenter', () => clearTimeout(popupTimer));
+      popup.addEventListener('mouseleave', () => popup.classList.add('hidden'));
+      $('#btn-logout').addEventListener('click', logout);
+      $('#btn-open-leave').addEventListener('click', openLeaveForm);
+      $('#leave-cancel').addEventListener('click', () => $('#leave-modal').classList.add('hidden'));
+      $('#leave-submit').addEventListener('click', submitLeave);
+      $('#btn-refresh-approvals').addEventListener('click', loadApprovals);
+      $('#btn-mark-read').addEventListener('click', markAllRead);
+      $('#btn-refresh-traces').addEventListener('click', loadTraces);
+      $$('.chip-btn[data-app-filter]').forEach(b => b.addEventListener('click', () => { appFilter = b.dataset.appFilter; $$('.chip-btn[data-app-filter]').forEach(x => x.classList.toggle('active', x === b)); loadApps(); }));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('#login-modal').classList.add('hidden'); $('#leave-modal').classList.add('hidden'); $('#user-popup').classList.add('hidden'); } });
+
+      loadMe();
+      refreshBadges();
+    })();
+  </script>
+</body>
+</html>

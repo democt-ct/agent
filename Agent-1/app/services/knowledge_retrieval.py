@@ -81,7 +81,7 @@ HF_EMBEDDING_DEVICE = os.getenv("KNOWLEDGE_HF_DEVICE", "auto").strip()
 
 # ---- Reranker configuration ----
 RERANKER_ENABLED = os.getenv("RERANKER_ENABLED", "false").strip().lower() in ("1", "true", "yes", "on")
-RERANKER_MODEL = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3").strip()
+RERANKER_MODEL = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2").strip()
 RERANKER_DEVICE = os.getenv("RERANKER_DEVICE", "auto").strip()
 RERANKER_CANDIDATE_LIMIT = int(os.getenv("RERANKER_CANDIDATE_LIMIT", "20"))
 RERANKER_TOP_K = int(os.getenv("RERANKER_TOP_K", "5"))

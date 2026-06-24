@@ -1,0 +1,543 @@
+{
+  "total": 20,
+  "passed": 13,
+  "routing_accuracy": 0.65,
+  "tool_accuracy": 0.5,
+  "retrieval_accuracy": 1.0,
+  "avg_time_ms": 20590.0,
+  "avg_tokens": 6304.85,
+  "by_category": {
+    "hr": {
+      "total": 5,
+      "routing_ok": 4,
+      "tools_ok": 1,
+      "tool_total": 2,
+      "routing_accuracy": 0.8,
+      "tool_accuracy": 0.5
+    },
+    "it": {
+      "total": 5,
+      "routing_ok": 4,
+      "tools_ok": 1,
+      "tool_total": 2,
+      "routing_accuracy": 0.8,
+      "tool_accuracy": 0.5
+    },
+    "legal": {
+      "total": 5,
+      "routing_ok": 4,
+      "tools_ok": 0,
+      "tool_total": 0,
+      "routing_accuracy": 0.8,
+      "tool_accuracy": 0.0
+    },
+    "fallback": {
+      "total": 3,
+      "routing_ok": 1,
+      "tools_ok": 0,
+      "tool_total": 0,
+      "routing_accuracy": 0.3333333333333333,
+      "tool_accuracy": 0.0
+    },
+    "cross": {
+      "total": 2,
+      "routing_ok": 0,
+      "tools_ok": 0,
+      "tool_total": 0,
+      "routing_accuracy": 0.0,
+      "tool_accuracy": 0.0
+    }
+  },
+  "results": [
+    {
+      "case_id": "eval_001",
+      "query": "我今年还剩几天年假？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [
+        "get_leave_balance"
+      ],
+      "actual_tools": [
+        "get_leave_balance"
+      ],
+      "tools_correct": true,
+      "expected_sources": [
+        "年假管理制度.md"
+      ],
+      "retrieved_sources": [
+        "请假审批流程.md",
+        "病假和医疗期规定.md",
+        "年假管理制度.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "未找到您的假期记录，请确认以下事项：\n1. 您提供的员工ID是否正确（如：EMP12345）\n2. 您是否已通过OA系统查看年假余额（路径：我的假期 > 年假余额）\n3. 若刚入职，请确认是否已过转正期（试用期员工不享有年假）\n\n建议您：\n✅ 登录OA系统核实个人信息\n✅ 联系直属上级确认工龄认定情况\n✅ 拨打分机8111联系HR部门人工核查\n\n（根据《年假管理制度》第4章规定，员工可通过OA系统、企业微信或邮件三种官方渠道查询年假余额）",
+      "processing_time_ms": 28643,
+      "tokens_used": 17171,
+      "error": null
+    },
+    {
+      "case_id": "eval_002",
+      "query": "请3天病假怎么申请？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "error",
+      "routing_correct": false,
+      "routing_method": "error",
+      "routing_confidence": 0.0,
+      "expected_tools": [
+        "submit_leave_request"
+      ],
+      "actual_tools": [],
+      "tools_correct": false,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": false,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": "Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': '44419d10-bc11-4ff4-93bf-6afbfca31a7e'}}"
+    },
+    {
+      "case_id": "eval_003",
+      "query": "公司社保公积金缴纳比例是多少？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.8,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [
+        "薪酬福利说明.md"
+      ],
+      "retrieved_sources": [
+        "请假审批流程.md",
+        "病假和医疗期规定.md",
+        "薪酬福利说明.md",
+        "年假管理制度.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "根据公司现行制度，社保和公积金缴纳比例如下：\n\n### 社保缴纳比例（个人+单位）\n| 险种       | 个人缴费比例 | 单位缴费比例 | 关键说明                     |\n|------------|--------------|--------------|------------------------------|\n| 养老保险   | **8%**       | **16%**      | 基数上下限按当地社平工资执行 |\n| 医疗保险   | **2%**       | **8.5%**     | 个人账户按月划入（35岁以下1%）|\n| 失业保险   | **0.5%**     | **0.5%**     | 非自愿失业需60天内登记       |\n| 工伤保险   | **0%**       | **0.2%-1.9%**| 按行业风险浮动               |\n| 生育保险   | **0%**       | **1%**       | 产假津贴由社保支付           |\n\n### 公积金缴纳比例\n| 项",
+      "processing_time_ms": 29426,
+      "tokens_used": 8183,
+      "error": null
+    },
+    {
+      "case_id": "eval_004",
+      "query": "年终奖什么时候发？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "请假审批流程.md",
+        "薪酬福利说明.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "年终奖通常在**春节前最后一个工作日**发放。根据公司制度，员工需在发放日当天仍在职方可获得年终奖。若在年终奖发放日前主动离职且未与公司协商发放事宜，则原则上不发放。\n\n**注意事项：**\n1. 发放日期可能因春节时间略有调整，具体以公司OA公告为准。\n2. 离职员工需在绩效考核周期结束后（12月31日后）离职才可能获得折算年终奖。\n3. 若公司未按制度发放，可先与上级或HR沟通，必要时申请劳动仲裁。",
+      "processing_time_ms": 15651,
+      "tokens_used": 7795,
+      "error": null
+    },
+    {
+      "case_id": "eval_005",
+      "query": "迟到三次会怎么处理？",
+      "category": "hr",
+      "expected_agent": "hr_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "考勤政策.md",
+        "病假和医疗期规定.md",
+        "请假审批流程.md",
+        "年假管理制度.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "根据《考勤政策》第4节及3.3条的规定，迟到三次的处理方式如下：\n\n1. **前三次迟到**  \n   按迟到时长分段扣款（见下表），**不视为旷工**，但会扣除当日餐补（20元）：\n   | 迟到时长 | 扣款金额 |\n   |---------|---------|\n   | 1~15分钟 | 20元（仅扣餐补） |\n   | 16~30分钟 | 50元（餐补+30元） |\n   | 31~60分钟 | 80元（餐补+60元） |\n\n2. **第四次及之后的迟到**  \n   **每次按旷工半天处理**，扣款为半日基本工资（如日薪200元则扣100元）+取消当日餐补，且不再适用分段扣款规则。\n\n3. **全勤奖影响**  \n   月累计迟到≥4次（即触发旷工处理），将失去全勤资格，无法获得200元全勤奖励。\n\n**示例**：  \n员工A月迟到3次（均在15分钟内），共扣款：20元×3次=60元，仍可保留全勤奖；  \n若该员工当月再迟到1次（即使仅5分钟），则第4次扣款为半日工资（如100元）+无餐补，且全勤奖取消。",
+      "processing_time_ms": 29151,
+      "tokens_used": 7413,
+      "error": null
+    },
+    {
+      "case_id": "eval_006",
+      "query": "笔记本蓝屏了怎么报修？",
+      "category": "it",
+      "expected_agent": "it_agent",
+      "actual_agent": "it_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.77,
+      "expected_tools": [
+        "create_ticket"
+      ],
+      "actual_tools": [
+        "create_ticket"
+      ],
+      "tools_correct": true,
+      "expected_sources": [
+        "报修指南.md"
+      ],
+      "retrieved_sources": [
+        "设备申领流程.md",
+        "报修指南.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "您的工单 **TK102** 已成功创建，当前状态为 **待处理**。以下是关键信息：\n\n- **故障等级**：P3（中）  \n- **响应时效**：工程师将在 **4小时内** 首次联系您  \n- **解决目标**：预计 **1-3个工作日** 内完成修复（提供备用设备时需3个工作日内归还）  \n\n**注意事项**：  \n1. 请将重要文件备份至公司网络盘（如OneDrive），避免维修过程数据丢失  \n2. **禁止自行拆卸笔记本**（如更换内存、硬盘），否则将失去设备保修资格  \n3. 工单进度可通过企业微信机器人或IT服务台网站实时查询  \n\n工程师将优先通过企业微信/电话联系您，请保持通讯畅通。",
+      "processing_time_ms": 36610,
+      "tokens_used": 14609,
+      "error": null
+    },
+    {
+      "case_id": "eval_007",
+      "query": "公司VPN怎么配置？",
+      "category": "it",
+      "expected_agent": "it_agent",
+      "actual_agent": "it_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "远程办公IT指南.md",
+        "网络和VPN配置.md",
+        "报修指南.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "以下是公司VPN配置指南及注意事项：\n\n---\n\n### 一、配置步骤（按操作系统）\n#### **Windows 系统**\n1. 下载安装 **FortiClient** 客户端（版本需 v7.0+）\n2. 打开客户端 → 选择 **SSLVPN** 模式\n3. 填写服务器地址：`vpn.company.com`\n4. 输入企业账号（AD账号）和密码\n5. 通过双因素认证（短信验证码或Passkey硬件令牌）\n\n#### **Mac 系统**\n1. 从App Store安装 **FortiClient**\n2. 配置服务器地址为 `vpn.company.com`，选择SSLVPN模式\n3. 安装公司根证书（下载地址见IT门户）\n4. 输入AD账号密码并完成双因素认证\n\n#### **Linux 系统**\n1. 安装开源客户端 `openfortivpn`\n2. 编辑配置文件 `/etc/openfortivpn/config`，填写服务器地址、账号信息\n3. 使用IT提供的预编译deb包（推荐）\n\n---\n\n### 二、常见问题解决\n| 问题 | 解决方案 |\n|------|--",
+      "processing_time_ms": 31357,
+      "tokens_used": 6839,
+      "error": null
+    },
+    {
+      "case_id": "eval_008",
+      "query": "怎么申请一个新的显示器？",
+      "category": "it",
+      "expected_agent": "it_agent",
+      "actual_agent": "error",
+      "routing_correct": false,
+      "routing_method": "error",
+      "routing_confidence": 0.0,
+      "expected_tools": [
+        "check_device_inventory"
+      ],
+      "actual_tools": [],
+      "tools_correct": false,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": false,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": "Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': 'b6e2ed7a-f84b-4e2d-8cfd-31f2dc31b86f'}}"
+    },
+    {
+      "case_id": "eval_009",
+      "query": "邮箱密码忘了怎么重置？",
+      "category": "it",
+      "expected_agent": "it_agent",
+      "actual_agent": "it_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "密码和账号管理.md",
+        "网络和VPN配置.md",
+        "报修指南.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "如果忘记邮箱密码，可通过以下两种方式重置：\n\n### 1. 自助重置（推荐）\n**适用条件**：手机号仍可接收验证码（未更换或已更新HR系统信息）\n**操作步骤**：\n1. 访问内网密码管理页面 `https://password.company.com`\n2. 输入工号 → 点击「发送验证码」\n3. 查收短信并输入验证码 → 设置新密码（需满足复杂度要求）\n**限制**：每日最多尝试2次，超出需次日再操作\n\n### 2. 人工重置（备用）\n**适用场景**：手机号已更换/无法接收验证码\n**操作方式**：\n- **邮件申请**  \n  发送至 `it-support@company.com`，主题格式：【密码重置】+工号+姓名+系统名  \n  *需使用公司邮箱发送，处理时限4小时内*\n  \n- **现场办理**  \n  携带工牌至IT前台（总部A栋3楼，工作时段8:30~18:00）  \n  *非工作时段仅处理紧急情况*\n\n**重要提示**：  \n- 建议通过HR系统及时更新手机号，避免二次影响  \n- 若因手机号变更导致无法自助重置，**首次人工处理免费**，后续需自行更新信息  ",
+      "processing_time_ms": 24257,
+      "tokens_used": 6766,
+      "error": null
+    },
+    {
+      "case_id": "eval_010",
+      "query": "打印机连不上怎么解决？",
+      "category": "it",
+      "expected_agent": "it_agent",
+      "actual_agent": "it_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "网络和VPN配置.md",
+        "报修指南.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "根据《报修指南》5.3 节的自排查要求，您需要先完成以下步骤：\n\n1. **检查物理状态**  \n   - 确认打印机电源灯常亮、网络指示灯闪烁（若灯不亮请检查电源线或网线）\n   - 尝试重新插拔网线或更换网口\n\n2. **设置默认打印机**  \n   - 进入控制面板 → 设备和打印机  \n   - 右键对应打印机 → 选择「设置为默认打印机」  \n   - 确保未勾选“脱机使用打印机”\n\n3. **运行诊断工具**  \n   - 右键打印机 → 「打印疑难解答」（Windows 内置工具）  \n   - 检查打印机驱动状态：设备管理器中是否有黄色感叹号\n\n4. **网络连通性测试**  \n   - 按 Win+R → 输入 `cmd` → 执行 `ping 打印机IP地址`  \n   - 打印机IP可通过以下方式获取：  \n     - 查看打印机屏幕显示的IP  \n     - 联系IT服务台获取IP分配记录\n\n如果以上步骤均无效，请提供以下信息协助创建工单：\n- 员工ID（如 U123456）\n- 打印机型号（如 HP LaserJet Pro MFP M428fdw）\n- ",
+      "processing_time_ms": 29499,
+      "tokens_used": 7421,
+      "error": null
+    },
+    {
+      "case_id": "eval_011",
+      "query": "竞业限制协议的条款怎么解读？",
+      "category": "legal",
+      "expected_agent": "legal_agent",
+      "actual_agent": "legal_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.78,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [
+        "保密协议说明.md"
+      ],
+      "retrieved_sources": [
+        "合规检查清单.md",
+        "知识产权政策.md",
+        "保密协议说明.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "竞业限制协议的核心条款可从以下五个维度解读：\n\n| 维度         | 关键内容                                                                 | 注意事项                                                                 |\n|--------------|--------------------------------------------------------------------------|--------------------------------------------------------------------------|\n| **适用对象** | 总监级高管/核心技术骨干/接触核心商业秘密的岗位（如大客户经理、财务负责人） | 入职或晋升时必须签署，法务部每季度更新《竞业限制岗位清单》               |\n| **限制期限** | **离职后不超过2年**（从劳动关系结束次日计算）              ",
+      "processing_time_ms": 27339,
+      "tokens_used": 6606,
+      "error": null
+    },
+    {
+      "case_id": "eval_012",
+      "query": "个人信息保护法对公司有什么要求？",
+      "category": "legal",
+      "expected_agent": "legal_agent",
+      "actual_agent": "legal_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.76,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "合规检查清单.md",
+        "数据保护条例.md",
+        "知识产权政策.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "根据《中华人民共和国个人信息保护法》及公司《数据保护条例》（v3.0），公司需遵守以下核心要求：\n\n---\n\n### **一、数据全生命周期管理**\n| 阶段 | 具体要求 | 法规依据 |\n|------|---------|---------|\n| **收集** | - 遵循最小必要原则（仅收集业务直接相关的最少信息）<br>- 敏感个人信息需单独明示同意（如身份证号、生物识别）<br>- 员工数据需签署《个人信息授权使用书》 | 《个保法》第6/13条 |\n| **存储** | - 敏感信息加密存储（AES-256）<br>- 纸质文件上锁保管<br>- 数据库访问权限最小化 | 《个保法》第42条 |\n| **使用** | - 仅限授权目的使用<br>- 禁止超范围共享（如部门间非必要传输） | 《个保法》第19条 |\n| **传输** | - 跨境传输需完成安全评估/标准合同/认证<br>- 禁止向未备案境外主体传输数据 | 《个保法》第38条 |\n| **销毁** | - 员工离职后保留2年（诉讼期间延长）<br>- 销毁需记录操作人、监督人、方式 | 《个保法》第47条 ",
+      "processing_time_ms": 29150,
+      "tokens_used": 6816,
+      "error": null
+    },
+    {
+      "case_id": "eval_013",
+      "query": "签合同时要注意哪些合规问题？",
+      "category": "legal",
+      "expected_agent": "legal_agent",
+      "actual_agent": "legal_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.77,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "合规检查清单.md",
+        "数据保护条例.md",
+        "合同审批流程.md",
+        "知识产权政策.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "签订合同时需重点关注以下合规问题：\n\n### 一、合同分类与审批流程\n1. **合同类型判定**（依据金额/期限/性质）：\n   - 常规合同（≤50万/1年内）需部门负责人+法务审核\n   - 重大合同（50万-500万/1-3年）需增加财务部+分管副总审批\n   - 战略合同（>500万/>3年）需董事会或专业委员会审批\n   - 紧急合同需事后3个工作日内补齐OA流程\n\n2. **审批时效控制**：\n   - 法务审核：常规3日/重大5日/战略7日\n   - 财务审核：重大/战略合同2日\n   - 分管副总审批：战略合同需3个工作日\n\n### 二、数据保护合规要点\n1. **数据出境限制**：\n   - 涉及100万+个人信息或关键信息基础设施需通过国家网信办安全评估\n   - 禁止向境外提供重要数据（如国家统计局定义的核心行业数据）\n   - 出境前必须签署《数据出境处理协议》并完成备案\n\n2. **第三方数据共享**：\n   - 必须完成数据保护影响评估（DPIA）\n   - 第三方需具备SOC2/ISO27001等认证资质\n   - 签署《数据处理协议》（DPA）明确安全责",
+      "processing_time_ms": 32894,
+      "tokens_used": 7088,
+      "error": null
+    },
+    {
+      "case_id": "eval_014",
+      "query": "员工数据能存到境外服务器吗？",
+      "category": "legal",
+      "expected_agent": "legal_agent",
+      "actual_agent": "error",
+      "routing_correct": false,
+      "routing_method": "error",
+      "routing_confidence": 0.0,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": false,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": false,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": "'str' object has no attribute 'get'"
+    },
+    {
+      "case_id": "eval_015",
+      "query": "保密协议包含哪些内容？",
+      "category": "legal",
+      "expected_agent": "legal_agent",
+      "actual_agent": "legal_agent",
+      "routing_correct": true,
+      "routing_method": "keyword",
+      "routing_confidence": 0.77,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [
+        "保密协议说明.md"
+      ],
+      "retrieved_sources": [
+        "合同审批流程.md",
+        "合规检查清单.md",
+        "数据保护条例.md",
+        "保密协议说明.md",
+        "知识产权政策.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "根据公司《保密协议管理制度》及配套文件，保密协议通常包含以下核心内容：\n\n1. **保密范围**\n   - 技术信息：源代码、算法模型、产品原型等（已公开专利信息除外）\n   - 经营信息：客户名单、供应商价格表、投标标底等（行业公开报告除外）\n   - 财务信息：成本结构、利润分析、预算方案等（官方年报除外）\n   - 管理信息：薪酬架构、绩效考核结果、董事会决议等（已公示制度除外）\n\n2. **保密义务**\n   - 禁止行为：不得披露/利用/复制保密信息，不得在公共场所讨论\n   - 安全规范：离开工位必须锁屏，禁止连接公共WiFi访问敏感系统\n   - 传输限制：禁止使用微信/QQ传输涉密文件，须使用公司加密渠道\n\n3. **在职限制**\n   - 竞业限制：禁止自营或为他人经营竞争业务（持股＜5%公众公司除外）\n   - 利益申报：接受外部赠礼超200元须申报，不得获取供应商回扣\n   - 资源使用：禁止使用公司资源处理私人业务\n\n4. **违约处理**\n   - 轻微泄露：书面警告+停发保密津贴（如《员工手册》纪律条款）\n   - 严重泄露：解除劳动合同+追偿损失（如故意外",
+      "processing_time_ms": 24104,
+      "tokens_used": 7034,
+      "error": null
+    },
+    {
+      "case_id": "eval_016",
+      "query": "你好",
+      "category": "fallback",
+      "expected_agent": "fallback",
+      "actual_agent": "fallback",
+      "routing_correct": true,
+      "routing_method": "greeting",
+      "routing_confidence": 1.0,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": true,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": null
+    },
+    {
+      "case_id": "eval_017",
+      "query": "谢谢你的帮助",
+      "category": "fallback",
+      "expected_agent": "fallback",
+      "actual_agent": "error",
+      "routing_correct": false,
+      "routing_method": "error",
+      "routing_confidence": 0.0,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": false,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": false,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": "Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': '1aa1b3e3-89d9-40d1-874c-d47558acd1f7'}}"
+    },
+    {
+      "case_id": "eval_018",
+      "query": "今天晚饭吃什么？",
+      "category": "fallback",
+      "expected_agent": "fallback",
+      "actual_agent": "error",
+      "routing_correct": false,
+      "routing_method": "error",
+      "routing_confidence": 0.0,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": false,
+      "expected_sources": [],
+      "retrieved_sources": [],
+      "retrieval_correct": false,
+      "answer": "",
+      "processing_time_ms": 0,
+      "tokens_used": 0,
+      "error": "'int' object has no attribute 'get'"
+    },
+    {
+      "case_id": "eval_019",
+      "query": "我请病假顺便笔记本报修",
+      "category": "cross",
+      "expected_agent": "hr_agent",
+      "actual_agent": "it_agent",
+      "routing_correct": false,
+      "routing_method": "keyword",
+      "routing_confidence": 0.85,
+      "expected_tools": [],
+      "actual_tools": [
+        "create_ticket"
+      ],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "设备申领流程.md",
+        "报修指南.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "为完成笔记本报修，请提供以下必要信息：\n1. 您的员工ID（格式如U2023XXXX）\n2. 笔记本具体故障现象（如：无法开机/屏幕碎裂/键盘失灵等）\n3. 设备型号（如ThinkPad E14 Gen6/MacBook Pro 14\" M4等）\n4. 是否急需使用（优先级选择）\n\n关于病假申请，请通过人力资源系统提交医疗证明并填写请假天数，系统将自动关联您的假期余额。",
+      "processing_time_ms": 33297,
+      "tokens_used": 14143,
+      "error": null
+    },
+    {
+      "case_id": "eval_020",
+      "query": "合同审批没过影响年终奖吗？",
+      "category": "cross",
+      "expected_agent": "legal_agent",
+      "actual_agent": "hr_agent",
+      "routing_correct": false,
+      "routing_method": "keyword",
+      "routing_confidence": 0.8,
+      "expected_tools": [],
+      "actual_tools": [],
+      "tools_correct": true,
+      "expected_sources": [],
+      "retrieved_sources": [
+        "年假管理制度.md",
+        "入职与离职管理流程.md",
+        "请假审批流程.md",
+        "薪酬福利说明.md",
+        "病假和医疗期规定.md"
+      ],
+      "retrieval_correct": true,
+      "answer": "根据《薪酬福利说明.md》中年终奖发放规则，**合同审批未过是否影响年终奖**，取决于以下两个关键因素：\n\n1. **年终奖发放日的在职状态**  \n   - 若因合同审批未通过导致员工在年终奖发放日（春节前最后一个工作日）**已离职**，则原则上不发放年终奖。  \n   - **例外情况**：若合同终止是因公司违法解除、或协商解除协议中明确约定年终奖折算，则可按实际在职月数折算。\n\n2. **合同审批未过的原因**  \n   - **员工个人原因**（如不符合录用条件、绩效不达标）：公司可依法解除劳动合同，此时员工无权主张年终奖。  \n   - **公司原因**（如合同条款争议、协商未果）：若导致员工被动离职，需根据《劳动合同法》第46条判断是否需支付经济补偿及年终奖折算。\n\n**建议行动**：  \n1. 立即与HR确认合同审批未过的具体原因及后续处理方案；  \n2. 若涉及离职，要求公司出具书面证明，明确离职性质及年终奖处理依据；  \n3. 保留劳动合同、审批记录、沟通证据等，以备争议解决。  \n\n**法律依据**：  \n- 《职工带薪年休假条例》及《劳动合同法》第46条（经济补偿",
+      "processing_time_ms": 40422,
+      "tokens_used": 8213,
+      "error": null
+    }
+  ],
+  "errors": [
+    "eval_002: Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': '44419d10-bc11-4ff4-93bf-6afbfca31a7e'}}",
+    "eval_008: Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': 'b6e2ed7a-f84b-4e2d-8cfd-31f2dc31b86f'}}",
+    "eval_014: 'str' object has no attribute 'get'",
+    "eval_017: Error code: 400 - {'error': {'message': 'Invalid model id: deepseek-v4-flash', 'request_id': '1aa1b3e3-89d9-40d1-874c-d47558acd1f7'}}",
+    "eval_018: 'int' object has no attribute 'get'"
+  ]
+}

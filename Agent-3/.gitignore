@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.chroma/
+chroma_db/
+*.egg-info/
+dist/
+.streamlit/
+ui-ux-pro-max-skill/

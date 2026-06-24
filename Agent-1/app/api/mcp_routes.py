@@ -49,6 +49,7 @@ from app.services.memory_extraction_service import (
     promote_session_buffer_to_patient,
 )
 from app.services.knowledge_retrieval import get_knowledge_retriever
+from app.config.faq_knowledge import search_faq, format_faq_context
 
 
 router = APIRouter(prefix="/api/v1/mcp", tags=["mcp-server"])
@@ -335,21 +336,35 @@ def _filter_allergy_from_knowledge(context: str, allergy_drugs: list[str]) -> Op
 
 
 def _build_knowledge_context_block(question: str, hospital_id: Optional[str], allergy_drugs: Optional[list[str]] = None) -> Optional[str]:
+    """构建知识上下文，优先从FAQ匹配，再从本地知识库检索"""
+    blocks = []
+    
+    # 1. 优先从FAQ知识库匹配（精确回答）
+    try:
+        faq_results = search_faq(question, top_k=3)
+        if faq_results:
+            faq_context = format_faq_context(faq_results)
+            if faq_context:
+                blocks.append(faq_context)
+    except Exception:
+        pass
+    
+    # 2. 从本地知识库检索（补充）
     try:
         from app.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            local_context = build_knowledge_context(db, query_text=question, hospital_id=hospital_id, limit=3)
+            if local_context:
+                if allergy_drugs:
+                    local_context = _filter_allergy_from_knowledge(local_context, allergy_drugs)
+                blocks.append(f"医学知识库参考：\n{local_context}")
+        finally:
+            db.close()
     except Exception:
-        return None
-
-    db = SessionLocal()
-    try:
-        context = build_knowledge_context(db, query_text=question, hospital_id=hospital_id, limit=3)
-        if context and allergy_drugs:
-            context = _filter_allergy_from_knowledge(context, allergy_drugs)
-        return context
-    except Exception:
-        return None
-    finally:
-        db.close()
+        pass
+    
+    return "\n\n".join(blocks) if blocks else None
 
 
 def _build_long_term_memory_context(db: Session, patient_id: Optional[str], question: Optional[str] = None) -> Optional[str]:

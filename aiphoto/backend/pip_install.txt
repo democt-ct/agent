@@ -1,0 +1,9 @@
+{
+  "command": "pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple",
+  "timestamp": "2026-06-15T22:51:54.025665",
+  "cwd": "D:\\zhuomian\\aiphoto\\backend",
+  "stdout": "Looking in indexes: https://pypi.tuna.tsinghua.edu.cn/simple\n",
+  "stderr": "WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProxyError('Cannot connect to proxy.', FileNotFoundError(2, 'No such file or directory'))': /simple/fastapi/\nWARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProxyError('Cannot connect to proxy.', FileNotFoundError(2, 'No such file or directory'))': /simple/fastapi/\nWARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProxyError('Cannot connect to proxy.', FileNotFoundError(2, 'No such file or directory'))': /simple/fastapi/\nWARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProxyError('Cannot connect to proxy.', FileNotFoundError(2, 'No such file or directory'))': /simple/fastapi/\nWARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProxyError('Cannot connect to proxy.', FileNotFoundError(2, 'No such file or directory'))': /simple/fastapi/\nERROR: Could not find a version that satisfies the requirement fastapi==0.109.0 (from versions: none)\n\n[notice] A new release of pip is available: 25.1.1 -> 26.0.1\n[notice] To update, run: C:\\Users\\31307\\AppData\\Local\\Programs\\Python\\Python39\\python.exe -m pip install --upgrade pip\nERROR: No matching distribution found for fastapi==0.109.0\n",
+  "return_code": 1,
+  "success": false
+}
