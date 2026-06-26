@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 import re
 import sqlite3
@@ -16,6 +16,13 @@ import httpx
 import asyncio
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
+
+# 增强意图识别
+try:
+    from services.enhanced_intent import recognize_intent_enhanced, to_requirement_payload
+    ENHANCED_INTENT_AVAILABLE = True
+except ImportError:
+    ENHANCED_INTENT_AVAILABLE = False
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
@@ -489,6 +496,35 @@ def _infer_location_scope_from_message(message: str) -> str:
 
 
 def interpret_requirement_payload(message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    解析用户需求，支持增强意图识别（混合模式）
+    """
+    context = context or {}
+    
+    # 尝试使用增强意图识别
+    if ENHANCED_INTENT_AVAILABLE:
+        try:
+            from services.enhanced_intent import recognize_intent_enhanced, to_requirement_payload
+            intent = recognize_intent_enhanced(message)
+            payload = to_requirement_payload(intent)
+            
+            # 补充context中的信息
+            anchor_location = parse_amap_location(context.get("anchor_location"))
+            if anchor_location:
+                payload["anchor_location"] = anchor_location
+            
+            # 如果enhanced没识别到城市，从context获取
+            if not payload.get("city"):
+                explicit_city = _extract_destination_hint(message)
+                city = explicit_city or _sanitize_city_name(context.get("current_city"))
+                payload["city"] = _sanitize_city_name(city) or ""
+            
+            print(f"[意图识别] 来源: {intent.source}, 城市: {payload['city']}")
+            return payload
+        except Exception as e:
+            print(f"[意图识别] 增强模式失败，回退到基础模式: {e}")
+    
+    # 基础模式（原有逻辑）
     context = context or {}
     explicit_city = _extract_destination_hint(message)
     city = (
