@@ -12,11 +12,15 @@
 
 | # | 文件 | 核心内容 | 预计时间 |
 |---|------|----------|----------|
-| 01 | [LLM工作原理](./01-LLM工作原理.md) | Token、Context Window、Function Calling、LLM≠Agent | 2天 |
+| 00 | [Agent定义辨析](./00-Agent定义辨析.md) | ChatBot vs Agent、Workflow vs Agent、RAG vs Agent | 1天 |
+| 01 | [LLM工作原理](./01-LLM工作原理.md) | Token、Context Window、Function Calling、Reasoning Model、LLM≠Agent | 2天 |
 | 02 | [Agent生命周期](./02-Agent生命周期.md) | Agent循环、Planning、Tool Selection、Reflection | 2天 |
 | 03 | [Context Engineering](./03-Context%20Engineering.md) | Context组成、管理策略、信息密度优化 | 2天 |
 | 04 | [Memory体系](./04-Memory体系.md) | 四层Memory架构、读写操作、设计原则 | 2天 |
 | 05 | [实践：设计你的第一个Agent](./05-实践：设计你的第一个Agent.md) | 综合练习，输出完整Agent设计文档 | 3天 |
+| 06 | [Reasoning](./06-Reasoning.md) | CoT、ToT、Reflection、Self-Correction、Deliberation | 2天 |
+
+> 📌 00→01→02→03→04→05 是主线，06（Reasoning）可以在学完 Part II Planning 后回头再看，理解更深。
 
 ---
 
