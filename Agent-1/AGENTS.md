@@ -61,7 +61,7 @@
 |------|--------|------|
 | `PG_HOST` / `PG_PORT` / `PG_USER` / `PG_PASSWORD` / `PG_DATABASE` | localhost:5433 / postgres / postgres / patient_agent | PostgreSQL（Docker 映射 5433→5432） |
 | `REDIS_HOST` / `REDIS_PORT` | localhost:6380 | Redis（Docker 映射 6380→6379） |
-| `TEXT_API_BASE` / `TEXT_MODEL` | ModelScope API / deepseek-ai/DeepSeek-V3.2 | 文本 LLM |
+| `TEXT_API_BASE` / `TEXT_MODEL` | ModelScope API / deepseek-ai/DeepSeek-V4-Flash | 文本 LLM |
 | `TEXT_FALLBACK_MODEL` | Qwen/Qwen3-235B-A22B-Instruct-2507 | 备用 LLM（主模型失败时降级） |
 | `VISION_API_BASE` / `VISION_MODEL` | ModelScope / Qwen3-VL-8B-Instruct | 视觉 LLM |
 | `CORS_ORIGINS` | * | CORS 白名单（逗号分隔） |

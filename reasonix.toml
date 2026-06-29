@@ -1,0 +1,2 @@
+[permissions]
+allow = ["install_skill", "Bash(cd D:\\zhuomian\\agent; git pull)"]

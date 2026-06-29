@@ -5232,7 +5232,6 @@ function focusMapResult(item) {
           const defaultCenter = overrideCenter || parseLocation(state.userLocation) || parseLocation(state.mapConfig?.defaultCenter) || { lng: 104.195397, lat: 35.86166 };
           state.map = new AMap.Map("mapCanvas", {
             viewMode: state.map3D ? "3D" : "2D",
-            layers: [AMap.createDefaultLayer()],
             showBuildingBlock: true,
             features: ["bg", "point", "road", "building"],
             zoom: Number.isFinite(Number(state.mapCameraOverride?.zoom)) ? Number(state.mapCameraOverride.zoom) : 12,
@@ -5672,8 +5671,8 @@ function focusMapResult(item) {
       }
     }
 
-    sendBtnEl.addEventListener("click", sendMessage);
-    mapSearchBtnEl.addEventListener("click", runMapSearch);
+    sendBtnEl?.addEventListener("click", sendMessage);
+    mapSearchBtnEl?.addEventListener("click", runMapSearch);
     systemCheckBtnEl?.addEventListener("click", runSystemCheck);
     noteSearchBtnEl?.addEventListener("click", searchUserNotePlaces);
     noteSaveBtnEl?.addEventListener("click", saveUserNoteEntry);
@@ -5681,7 +5680,7 @@ function focusMapResult(item) {
       resetUserNoteDraft({ syncCity: true });
       setStatus("已清空用户记录输入。");
     });
-    mapSearchInputEl.addEventListener("keydown", (event) => {
+    mapSearchInputEl?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         runMapSearch();
@@ -5699,15 +5698,15 @@ function focusMapResult(item) {
         searchUserNotePlaces();
       }
     });
-    mapMode2DBtnEl.addEventListener("click", () => setMapMode(false));
-    mapMode3DBtnEl.addEventListener("click", () => setMapMode(true));
-    mapZoomInBtnEl.addEventListener("click", () => {
+    mapMode2DBtnEl?.addEventListener("click", () => setMapMode(false));
+    mapMode3DBtnEl?.addEventListener("click", () => setMapMode(true));
+    mapZoomInBtnEl?.addEventListener("click", () => {
       if (state.map && typeof state.map.zoomIn === "function") state.map.zoomIn();
     });
-    mapZoomOutBtnEl.addEventListener("click", () => {
+    mapZoomOutBtnEl?.addEventListener("click", () => {
       if (state.map && typeof state.map.zoomOut === "function") state.map.zoomOut();
     });
-    newSessionBtnEl.addEventListener("click", async () => {
+    newSessionBtnEl?.addEventListener("click", async () => {
       clearPendingRouteRefresh();
       localStorage.removeItem("travelAgentSessionId");
       state.sessionId = null;
@@ -5746,7 +5745,7 @@ function focusMapResult(item) {
       setRecentPanelOpen(false);
       setStatus("已重置为新会话。");
     });
-    sidebarToggleEl.addEventListener("click", () => {
+    sidebarToggleEl?.addEventListener("click", () => {
       setRecentPanelOpen(!state.recentPanelOpen);
     });
     document.addEventListener("click", (event) => {
@@ -5763,7 +5762,7 @@ function focusMapResult(item) {
         setRecentPanelOpen(false);
       }
     });
-    promptInputEl.addEventListener("keydown", (event) => {
+    promptInputEl?.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         sendMessage();

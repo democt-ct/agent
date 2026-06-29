@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -18,7 +18,7 @@ from openai import OpenAI, APIError, APITimeoutError, RateLimitError
 
 
 DEFAULT_OPENAI_API_BASE = "https://api-inference.modelscope.cn/v1/"
-DEFAULT_OPENAI_MODEL = "deepseek-ai/DeepSeek-V3.2"
+DEFAULT_OPENAI_MODEL = "deepseek-ai/DeepSeek-V4-Flash"
 
 # Fallback model configuration (used when primary model fails)
 DEFAULT_FALLBACK_API_BASE = "https://api-inference.modelscope.cn/v1/"

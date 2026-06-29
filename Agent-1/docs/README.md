@@ -28,7 +28,7 @@
 
 **模型接入**:
 - 文本生成：OpenAI-compatible 接口，支持主模型 + 备用模型自动降级
-- 当前默认：`deepseek-ai/DeepSeek-V3.2` → 备用 `Qwen/Qwen3-235B-A22B-Instruct-2507`
+- 当前默认：`deepseek-ai/DeepSeek-V4-Flash` → 备用 `Qwen/Qwen3-235B-A22B-Instruct-2507`
 - 图片理解：`Qwen/Qwen3-VL-8B-Instruct`
 - 向量模型：`BAAI/bge-small-zh-v1.5`
 

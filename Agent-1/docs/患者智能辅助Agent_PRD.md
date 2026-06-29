@@ -203,11 +203,11 @@
 
 ### 6.3 模型配置
 
-当前采用“本地文本 + 远端视觉”的混合方案：
+当前采用 ModelScope API 远程调用方案：
 
-- 文本生成：本地 Ollama
-- 图片理解：远端 OpenAI-compatible Vision
-- 语音：本地 TTS / 浏览器播报
+- 文本生成：DeepSeek-V4-Flash（ModelScope API）
+- 图片理解：Qwen3-VL-8B-Instruct（ModelScope API）
+- 语音：Kokoro（本地）/ OpenAI Compatible TTS（远程）
 
 ### 6.4 前端
 
