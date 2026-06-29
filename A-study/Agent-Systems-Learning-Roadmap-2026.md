@@ -1,6 +1,10 @@
 # 🧭 Agent Systems 学习路线图（2026）
 
-> **作者**：qqq &nbsp;|&nbsp; **版本**：v1.0 &nbsp;|&nbsp; **目标**：从「会做 Agent Demo」→「独立设计、开发、部署和优化 Production Agent System 的 Agent Engineer」
+> **⚠️ 本文件为早期规划稿（v1.0），已不再维护。**
+>
+> **系统性学习请阅读主文档：→ [学习指南.md](./学习指南.md)**
+>
+> 本文件保留作为月度计划的节奏参考（第七节）。
 
 ---
 
