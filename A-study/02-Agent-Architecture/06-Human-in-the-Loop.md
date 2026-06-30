@@ -46,7 +46,7 @@ class Notifier:
     def notify(self, action: str, result: dict):
         # 写入日志
         logger.info(f"[Agent Action] {action}: {result}")
-        
+      
         # 推送通知（异步）
         notification = {
             "type": "agent_action",
@@ -55,7 +55,7 @@ class Notifier:
             "timestamp": datetime.now().isoformat()
         }
         self.push_to_user(notification)
-    
+  
     def push_to_user(self, notification: dict):
         # WebSocket / SSE / 轮询 等方式推送给前端
         pass
@@ -87,15 +87,15 @@ RISK_THRESHOLD = {
 class ConfirmationGate:
     def __init__(self):
         self.pending_actions: Dict[str, dict] = {}
-    
+  
     def check(self, action: str, params: dict) -> dict:
         """检查是否需要确认"""
         risk = self._assess_risk(action, params)
         threshold = RISK_THRESHOLD[risk]
-        
+      
         if threshold == "auto":
             return {"status": "approved", "risk": risk.value}
-        
+      
         # 需要确认
         action_id = str(uuid.uuid4())
         self.pending_actions[action_id] = {
@@ -105,29 +105,29 @@ class ConfirmationGate:
             "status": "pending",
             "created_at": datetime.now()
         }
-        
+      
         return {
             "status": "pending_confirmation",
             "action_id": action_id,
             "risk": risk.value,
             "message": self._format_confirmation(action, params, risk)
         }
-    
+  
     def _assess_risk(self, action: str, params: dict) -> ActionRisk:
         """评估操作风险等级"""
         # 高风险操作
         if action in ["delete_database", "drop_table", "payment", 
                        "send_email_to_all", "deploy_to_production"]:
             return ActionRisk.HIGH
-        
+      
         # 中风险操作
         if action in ["book_flight", "book_hotel", "update_record",
                        "modify_file", "run_sql"]:
             return ActionRisk.MEDIUM
-        
+      
         # 低风险操作
         return ActionRisk.LOW
-    
+  
     def _format_confirmation(self, action, params, risk):
         """生成人类可读的确认消息"""
         return f"""
@@ -141,13 +141,13 @@ Agent 计划执行：{action}
 是否确认执行？
 [确认] [拒绝] [修改参数]
 """
-    
+  
     def approve(self, action_id: str) -> bool:
         if action_id in self.pending_actions:
             self.pending_actions[action_id]["status"] = "approved"
             return True
         return False
-    
+  
     def reject(self, action_id: str, reason: str = "") -> bool:
         if action_id in self.pending_actions:
             self.pending_actions[action_id]["status"] = "rejected"
@@ -165,20 +165,20 @@ class InterventionManager:
     def __init__(self):
         self.intervention_flags: Dict[str, bool] = {}
         self.modifications: Dict[str, dict] = {}
-    
+  
     def request_stop(self, session_id: str):
         """用户请求中止"""
         self.intervention_flags[session_id] = True
-    
+  
     def should_stop(self, session_id: str) -> bool:
         """Agent 在每个步骤前检查"""
         return self.intervention_flags.get(session_id, False)
-    
+  
     def inject_modification(self, session_id: str, 
                             step: str, new_params: dict):
         """用户修改某个步骤的参数"""
         self.modifications[f"{session_id}:{step}"] = new_params
-    
+  
     def get_modification(self, session_id: str, step: str):
         """Agent 在执行前检查是否有用户修改"""
         return self.modifications.get(f"{session_id}:{step}")
@@ -189,22 +189,22 @@ class HITLAgent:
     def __init__(self):
         self.confirmation = ConfirmationGate()
         self.intervention = InterventionManager()
-    
+  
     def execute_step(self, step: dict, session_id: str):
         # 检查中止请求
         if self.intervention.should_stop(session_id):
             return {"status": "stopped", "message": "用户中止了操作"}
-        
+      
         # 检查用户是否修改了这个步骤
         modification = self.intervention.get_modification(
             session_id, step["name"]
         )
         if modification:
             step["params"].update(modification)
-        
+      
         # 风险评估
         check = self.confirmation.check(step["action"], step["params"])
-        
+      
         if check["status"] == "pending_confirmation":
             # 返回给前端，等待用户确认
             return {
@@ -212,7 +212,7 @@ class HITLAgent:
                 "action_id": check["action_id"],
                 "message": check["message"]
             }
-        
+      
         # 通过，执行
         return self._do_execute(step)
 ```
@@ -248,7 +248,7 @@ class HITLAgent:
 ```python
 class HITLStateMachine:
     """扩展现有的 State Machine，加入 HITL 状态"""
-    
+  
     def handle_user_response(self, response: dict):
         """
         response = {
@@ -258,21 +258,21 @@ class HITLStateMachine:
         }
         """
         action_id = response["action_id"]
-        
+      
         match response["decision"]:
             case "approve":
                 self.confirmation.approve(action_id)
                 # 恢复执行
                 self.transition(AgentState.EXECUTING, "user_approved")
                 return self.resume_from_checkpoint()
-            
+          
             case "reject":
                 self.confirmation.reject(action_id, 
                     response.get("reason", "用户拒绝"))
                 # 跳过当前步骤，执行替代方案
                 self.transition(AgentState.EXECUTING, "user_rejected")
                 return self.execute_fallback()
-            
+          
             case "modify":
                 # 注入修改后的参数
                 self.intervention.inject_modification(
@@ -283,20 +283,20 @@ class HITLStateMachine:
                 self.confirmation.approve(action_id)
                 self.transition(AgentState.EXECUTING, "user_modified")
                 return self.resume_from_checkpoint()
-    
+  
     def resume_from_checkpoint(self):
         """从上次中断的地方继续"""
         checkpoint = self.context.get("checkpoint")
         if not checkpoint:
             raise Exception("没有检查点，无法恢复")
-        
+      
         # 恢复状态
         self.current_step = checkpoint["step"]
         self.context.update(checkpoint["context_snapshot"])
-        
+      
         # 继续执行
         return self.execute_next_step()
-    
+  
     def save_checkpoint(self):
         """在等待确认前保存检查点"""
         self.context["checkpoint"] = {
@@ -330,7 +330,7 @@ class HITLStateMachine:
 ```python
 def format_hitl_message(action: str, params: dict, risk: str) -> str:
     """把机器参数翻译成人话"""
-    
+  
     # 按操作类型定制展示
     templates = {
         "book_flight": """
@@ -344,7 +344,7 @@ def format_hitl_message(action: str, params: dict, risk: str) -> str:
 
 风险等级：{risk}
         """,
-        
+      
         "delete_records": """
 ⚠️ 数据删除确认
 
@@ -356,7 +356,7 @@ def format_hitl_message(action: str, params: dict, risk: str) -> str:
 风险等级：{risk}
         """,
     }
-    
+  
     template = templates.get(action, "操作：{action}\n参数：{params}")
     return template.format(**params, risk=risk, action=action)
 ```
@@ -397,13 +397,13 @@ def format_hitl_message(action: str, params: dict, risk: str) -> str:
 
 ## 7. 常见错误
 
-| 错误 | 后果 | 正确做法 |
-|------|------|---------|
-| 所有操作都确认 | 用户变成"确认机器人" | 低风险自动，高风险确认 |
-| 确认信息看不懂 | 用户盲目点确认 | 翻译成人话，突出关键信息 |
-| 只确认不保存检查点 | 确认后从头重来 | 每次中断前保存完整检查点 |
-| 等待确认无超时 | 流程永远挂着 | 确认等待设超时，超时自动取消 |
-| 不允许修改参数 | 用户只能全接受或全拒绝 | 允许用户修改部分参数 |
+| 错误               | 后果                   | 正确做法                     |
+| ------------------ | ---------------------- | ---------------------------- |
+| 所有操作都确认     | 用户变成"确认机器人"   | 低风险自动，高风险确认       |
+| 确认信息看不懂     | 用户盲目点确认         | 翻译成人话，突出关键信息     |
+| 只确认不保存检查点 | 确认后从头重来         | 每次中断前保存完整检查点     |
+| 等待确认无超时     | 流程永远挂着           | 确认等待设超时，超时自动取消 |
+| 不允许修改参数     | 用户只能全接受或全拒绝 | 允许用户修改部分参数         |
 
 ---
 

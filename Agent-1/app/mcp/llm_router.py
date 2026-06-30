@@ -14,6 +14,12 @@ from app.mcp.drug_interaction import (
 from app.mcp.hallucination_guard import apply_hallucination_check
 from app.mcp.schemas import MCPRiskSignals
 from app.mcp.server import mcp_server
+from app.mcp.triage import (
+    TriageResult,
+    detect_emergency_symptoms,
+    format_triage_advice,
+    triage_from_risk_signals,
+)
 from app.mcp.vision import analyze_image_with_llm
 
 
@@ -1207,15 +1213,14 @@ def _detect_emergency_symptoms(answer: str) -> list[str]:
 
 
 def _append_risk_advice(answer: str, risk_signals: Optional[MCPRiskSignals]) -> str:
-    """Append medical safety advice to the answer when risk signals are detected.
+    """Append medical safety advice to the answer using multi-level triage.
 
-    - Emergency symptoms: urgent referral with prominent warning
-    - Red flags (胸痛, 呼吸困难, etc.): urgent medical consultation advice
-    - Medication flags (停药, 漏服, etc.): medication safety reminder
-    - Monitoring flags alone do NOT trigger additional advice (routine follow-up)
+    Uses the triage module for three-level classification:
+      - EMERGENCY: 120 / ER referral
+      - URGENT:   see doctor within 24h
+      - ROUTINE:  no extra warning
 
-    The advice blends into the assistant's conversational tone — no separator line,
-    no system-style warning markers.
+    Also checks medication flags for drug safety reminders.
     """
     if not answer or not risk_signals:
         return answer
@@ -1226,22 +1231,24 @@ def _append_risk_advice(answer: str, risk_signals: Optional[MCPRiskSignals]) -> 
     if not red and not med:
         return answer
 
+    # Use multi-level triage
+    triage_result: TriageResult = triage_from_risk_signals(
+        answer, red_flags=red, medication_flags=med,
+    )
+
+    triage_advice = format_triage_advice(triage_result)
+    if triage_advice:
+        return answer.rstrip() + triage_advice
+
+    # Fallback: non-emergency, non-urgent but red flags exist
     lines: list[str] = []
 
     if red:
-        emergency_detected = _detect_emergency_symptoms(answer)
-        if emergency_detected:
-            emergency_list = "、".join(emergency_detected)
-            lines.append(
-                f"🚨 **紧急提醒**：你描述的症状包含 {emergency_list}，"
-                f"这些可能是危及生命的急症。请立即拨打120急救电话或尽快前往最近的急诊科就诊，不要延误！"
-            )
-        else:
-            red_list = "、".join(red[:4])
-            lines.append(
-                f"另外，你提到的{red_list}是需要重视的信号，"
-                f"建议尽快去医院让医生看一下，别单靠线上咨询来判断。"
-            )
+        red_list = "、".join(red[:4])
+        lines.append(
+            f"另外，你提到的{red_list}是需要重视的信号，"
+            f"建议尽快去医院让医生看一下，别单靠线上咨询来判断。"
+        )
 
     if med:
         med_list = "、".join(med[:4])

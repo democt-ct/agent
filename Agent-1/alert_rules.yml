@@ -1,0 +1,96 @@
+# ── Alerting Rules for Patient Agent ──
+# Prometheus 告警规则文件. 使用 prometheus-rule-parser 兼容格式.
+#
+# Usage: promtool test rules alert_rules.yml
+# 或在 prometheus.yml 中引用: rule_files: ["alert_rules.yml"]
+
+groups:
+  - name: patient_agent_alerts
+    interval: 30s
+    rules:
+
+      # ── Agent Query 错误率过高 ──
+      - alert: HighAgentQueryErrorRate
+        expr: |
+          rate(agent_query_errors_total[5m]) / rate(agent_queries_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: agent
+        annotations:
+          summary: "Agent 查询错误率超过 5%"
+          description: "过去 5 分钟 agent query 错误率 {{ $value | humanizePercentage }}，可能 LLM 故障或 pipeline bug"
+
+      # ── Agent Query 延迟过高 ──
+      - alert: HighAgentQueryLatency
+        expr: |
+          histogram_quantile(0.95, rate(agent_query_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: agent
+        annotations:
+          summary: "Agent P95 延迟超过 30 秒"
+          description: "Agent query P95 延迟 {{ $value }}s，可能 LLM 响应慢或工具调用堆积"
+
+      # ── LLM 调用错误 ──
+      - alert: LLMCallErrors
+        expr: |
+          rate(llm_calls_total{status="error"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+          component: llm
+        annotations:
+          summary: "LLM 调用出现错误"
+          description: "过去 5 分钟 LLM 错误调用 {{ $value | humanize }} 次/秒"
+
+      # ── Redis 不可用 ──
+      - alert: RedisDown
+        expr: |
+          up{job="patient-agent"} == 1
+          and
+          absent(redis_up) or redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis 不可用"
+          description: "Redis 连接失败，session 缓存将降级到内存模式"
+
+      # ── 人工升级堆积 ──
+      - alert: EscalationBacklog
+        expr: |
+          escalations_total{status="pending"} > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: escalation
+        annotations:
+          summary: "人工升级待处理数超过 5"
+          description: "当前 {{ $value }} 个升级请求待处理，请检查值班安排"
+
+      # ── 紧急升级未处理 ──
+      - alert: CriticalEscalationUnacknowledged
+        expr: |
+          escalations_total{severity="critical",status="pending"} > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: escalation
+        annotations:
+          summary: "存在未确认的紧急升级"
+          description: "存在 {{ $value }} 个 CRITICAL 级别的升级超过 2 分钟未确认"
+
+      # ── 应用宕机 ──
+      - alert: ServiceDown
+        expr: |
+          up{job="patient-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: service
+        annotations:
+          summary: "Patient Agent 服务宕机"
+          description: "服务 {{ $labels.instance }} 超过 1 分钟不可达"

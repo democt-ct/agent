@@ -20,14 +20,14 @@
 
 **什么时候真的需要 Multi-Agent？**
 
-| 场景 | 是否适合 Multi-Agent | 原因 |
-|------|---------------------|------|
-| 复杂任务可自然分工 | ✅ | 搜索/编码/分析 天然不同 |
-| 需要不同 System Prompt | ✅ | 不同角色需要不同行为规则 |
-| 需要不同工具集 | ✅ | 浏览器 Agent vs 代码 Agent 工具完全不同 |
-| 想提升准确率 | ❌ | 更好的 Prompt 比更多 Agent 有效 |
-| 看起来"更高级" | ❌ | 错误理由 |
-| 简单线性任务 | ❌ | 一个 Agent + 好的 Planner 足够 |
+| 场景                   | 是否适合 Multi-Agent | 原因                                    |
+| ---------------------- | -------------------- | --------------------------------------- |
+| 复杂任务可自然分工     | ✅                   | 搜索/编码/分析 天然不同                 |
+| 需要不同 System Prompt | ✅                   | 不同角色需要不同行为规则                |
+| 需要不同工具集         | ✅                   | 浏览器 Agent vs 代码 Agent 工具完全不同 |
+| 想提升准确率           | ❌                   | 更好的 Prompt 比更多 Agent 有效         |
+| 看起来"更高级"         | ❌                   | 错误理由                                |
+| 简单线性任务           | ❌                   | 一个 Agent + 好的 Planner 足够          |
 
 ---
 
@@ -57,31 +57,31 @@ class Orchestrator:
             "analyst":    AnalystAgent(),
             "writer":     WriterAgent(),
         }
-    
+  
     def handle(self, user_input: str, context: dict):
         # 1. 决定需要哪些 Worker
         plan = self.plan(user_input)
-        
+      
         # 2. 并行或串行调用 Worker
         results = {}
         for task in plan["tasks"]:
             worker = self.workers[task["worker"]]
             results[task["id"]] = worker.execute(task, context)
-        
+      
         # 3. 汇总结果
         return self.synthesize(results, user_input)
-    
+  
     def plan(self, user_input: str):
         """决定任务分配"""
         prompt = f"""
         用户需求：{user_input}
-        
+      
         可用的 Worker：
         - researcher: 搜索信息、查找资料
         - coder: 编写代码、运行分析
         - analyst: 数据分析、生成洞察
         - writer: 撰写文档、生成报告
-        
+      
         将任务分解，返回 JSON：
         [{{"id": 1, "worker": "researcher", "task": "..."}}, ...]
         """
@@ -121,29 +121,29 @@ class PeerAgent:
         self.role = role
         self.tools = tools
         self.peers: Dict[str, 'PeerAgent'] = {}
-    
+  
     def connect(self, peer: 'PeerAgent'):
         self.peers[peer.name] = peer
-    
+  
     def execute(self, task: dict, conversation: list):
         """执行任务，可能请求其他 Agent 帮助"""
         prompt = f"""
         你是 {self.name}，角色：{self.role}
-        
+      
         可用工具：{self.tools}
         可请求帮助的同事：{list(self.peers.keys())}
-        
+      
         当前任务：{task}
         当前进展：{conversation}
-        
+      
         决定下一步：
         1. 使用工具自己完成
         2. 请求某个同事帮助 → 输出 "HELP:<同事名>:<请求内容>"
         3. 任务完成 → 输出 "DONE:<结果>"
         """
-        
+      
         response = llm.generate(prompt)
-        
+      
         if response.startswith("HELP:"):
             _, peer_name, request = response.split(":", 2)
             peer_result = self.peers[peer_name].execute(
@@ -151,7 +151,7 @@ class PeerAgent:
             )
             # 拿到帮助后继续
             return self.execute(task, conversation + [peer_result])
-        
+      
         return response
 ```
 
@@ -171,20 +171,20 @@ class ReviewPipeline:
         self.proposer = ProposerAgent()   # 生成方案
         self.reviewer = ReviewerAgent()   # 挑剔找问题
         self.approver = ApproverAgent()   # 最终裁决
-    
+  
     def run(self, task: str, max_rounds: int = 3):
         proposal = self.proposer.generate(task)
-        
+      
         for round_num in range(max_rounds):
             # Review 当前提案
             feedback = self.reviewer.review(proposal, task)
-            
+          
             if feedback["approved"]:
                 return proposal
-            
+          
             # 根据反馈修改
             proposal = self.proposer.revise(proposal, feedback)
-        
+      
         # 达到最大轮次，最终裁决
         return self.approver.final_decision(proposal, task)
 
@@ -193,16 +193,16 @@ class ReviewerAgent:
     def review(self, proposal: str, original_task: str) -> dict:
         prompt = f"""
         严格审查以下方案，找出所有问题。
-        
+      
         原始需求：{original_task}
         方案：{proposal}
-        
+      
         检查项：
         - 是否满足所有需求？
         - 有没有安全隐患？
         - 有没有遗漏的边界情况？
         - 是否选择了最优方案？
-        
+      
         返回 JSON：
         {{"approved": false, "issues": ["问题1", ...], "suggestions": ["建议1", ...]}}
         """
@@ -262,7 +262,7 @@ class AgentMessage:
     msg_type: str        # "task" | "result" | "question" | "error"
     content: Any
     correlation_id: str  # 关联到原始任务
-    
+  
     def to_prompt(self) -> str:
         return f"[{self.sender} → {self.receiver}] {self.msg_type}: {self.content}"
 ```
@@ -276,16 +276,16 @@ class Blackboard:
     """所有 Agent 共享的工作空间"""
     def __init__(self):
         self.data: Dict[str, Any] = {}
-    
+  
     def write(self, agent_name: str, key: str, value: Any):
         self.data[f"{agent_name}:{key}"] = value
-    
+  
     def read(self, key_pattern: str = None) -> dict:
         if key_pattern:
             return {k: v for k, v in self.data.items() 
                     if key_pattern in k}
         return dict(self.data)
-    
+  
     def clear(self):
         self.data = {}
 
@@ -349,13 +349,13 @@ Agent A 等 Agent B 的结果，Agent B 在等 Agent C，
 
 ## 6. 常见错误
 
-| 错误 | 后果 | 正确做法 |
-|------|------|---------|
-| 简单任务用 Multi-Agent | 延迟高、成本高、没收益 | 一个 Agent + 好的 Planner |
-| 没有最大轮次限制 | Agent 之间无限对话 | 所有协作设 MAX_ROUNDS |
-| Worker 之间职责重叠 | 两个 Agent 做了一样的事 | 每个 Worker 的 System Prompt 职责边界清晰 |
-| 缺少超时 | 一个 Worker 卡住拖垮全局 | 每个 Worker 设独立超时 |
-| 串行等待 | 明明可以并行却在排队 | 识别无依赖 Worker 并行执行 |
+| 错误                   | 后果                     | 正确做法                                  |
+| ---------------------- | ------------------------ | ----------------------------------------- |
+| 简单任务用 Multi-Agent | 延迟高、成本高、没收益   | 一个 Agent + 好的 Planner                 |
+| 没有最大轮次限制       | Agent 之间无限对话       | 所有协作设 MAX_ROUNDS                     |
+| Worker 之间职责重叠    | 两个 Agent 做了一样的事  | 每个 Worker 的 System Prompt 职责边界清晰 |
+| 缺少超时               | 一个 Worker 卡住拖垮全局 | 每个 Worker 设独立超时                    |
+| 串行等待               | 明明可以并行却在排队     | 识别无依赖 Worker 并行执行                |
 
 ---
 

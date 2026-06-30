@@ -71,6 +71,7 @@ class MCPRiskSignals(BaseModel):
     red_flags: List[str] = Field(default_factory=list, description="Red flag signals")
     medication_flags: List[str] = Field(default_factory=list, description="Medication-related flags")
     monitoring_flags: List[str] = Field(default_factory=list, description="Monitoring-related flags")
+    triage_level: str = Field(default="routine", description="Triage level: emergency / urgent / routine")
 
 
 class MCPMemoryControl(BaseModel):
@@ -139,6 +140,9 @@ class MCPAgentQueryResponse(BaseModel):
     memory_debug: Optional[Dict[str, Any]] = None
     answer_confidence: Optional[float] = Field(default=None, description="Answer confidence 0-1")
     confidence_reason: Optional[str] = Field(default=None, description="Confidence reason")
+    triage_level: Optional[str] = Field(default=None, description="Triage level: emergency / urgent / routine")
+    escalation_id: Optional[str] = Field(default=None, description="Escalation ID if escalated to human")
+    session_state: Optional[str] = Field(default=None, description="Current FSM session state")
 
 
 class MCPSpeechRequest(BaseModel):

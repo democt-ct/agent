@@ -34,6 +34,19 @@ from app.mcp.schemas import (
 )
 from app.mcp.server import mcp_server, normalize_optional_auth_token
 from app.mcp.speech import SpeechSynthesisError, synthesize_speech_with_llm
+from app.mcp.state_machine import SessionState, SessionStateMachine
+from app.mcp.triage import triage as run_triage
+from app.mcp.escalation import (
+    EscalationReason,
+    create_escalation,
+    determine_escalation_priority,
+    should_escalate_from_triage,
+)
+from app.core.tracing import (
+    record_agent_error,
+    record_escalation as record_escalation_metric,
+    trace_agent_phase,
+)
 from app.models.memory_key_event import MemoryKeyEvent
 from app.models.memory_business_profile import MemoryBusinessProfile
 from app.models.memory_conversation_profile import MemoryConversationProfile
@@ -1223,8 +1236,33 @@ def _extract_risk_signals(messages: list[MCPRecentMessage], entities: MCPActiveE
         red_flags=_clip_items(red_flags, limit=6, item_limit=80),
         medication_flags=_clip_items(medication_flags, limit=6, item_limit=80),
         monitoring_flags=_clip_items(monitoring_flags, limit=8, item_limit=80),
+        triage_level=run_triage(" ".join(m.content for m in messages if m.role == "user"), red_flags=red_flags, medication_flags=medication_flags).level.value,
     )
 
+
+# ── FSM helpers ──
+
+def _get_or_create_fsm(session_id: str, memory: MCPShortTermMemory) -> SessionStateMachine:
+    """Initialize or resume the session state machine from Redis."""
+    fsm_data = memory.session_state.model_dump().get("fsm")
+    if fsm_data:
+        try:
+            return SessionStateMachine.from_dict(fsm_data)
+        except Exception:
+            pass
+    return SessionStateMachine(session_id=session_id)
+
+
+def _save_fsm(session_id: str, fsm: SessionStateMachine, memory: MCPShortTermMemory) -> None:
+    """Persist FSM state into short-term memory for Redis storage."""
+    # Attach FSM dict to session_state for serialization
+    extras = memory.session_state.model_dump()
+    extras["fsm"] = fsm.to_dict()
+    # Rebuild with extra field (Pydantic ignores unknown by default)
+    memory.session_state = MCPSessionState.model_validate(extras)
+
+
+# ── Session state builders ──
 
 def _build_session_state(messages: list[MCPRecentMessage], entities: MCPActiveEntities) -> MCPSessionState:
     latest_user = next((item.content for item in reversed(messages) if (item.role or "").strip().lower() == "user" and (item.content or "").strip()), "")
@@ -1467,17 +1505,59 @@ def mcp_agent_query(payload: MCPAgentQueryRequest, db: Session = Depends(get_db)
         input_short_term_memory.active_entities if input_short_term_memory else MCPActiveEntities(),
     )
 
-    data = run_agent_tool_query(
-        question=payload.question,
-        auth_token=auth_token,
-        patient_id=resolved_patient_id,
-        hospital_id=resolved_hospital_id,
-        chat_mode=chat_mode,
-        conversation_context=conversation_context,
-        allergy_drugs=allergy_drugs,
-        allergy_history_unknown=allergy_history_unknown,
-        risk_signals=current_risk_signals,
+    # ── FSM: initialize or resume session state machine ──
+    fsm = _get_or_create_fsm(session_id, input_short_term_memory)
+    
+    # ── Triage: run multi-level triage on the question ──
+    triage_result = run_triage(
+        payload.question,
+        red_flags=current_risk_signals.red_flags,
+        medication_flags=current_risk_signals.medication_flags,
     )
+    current_risk_signals.triage_level = triage_result.level.value
+
+    # ── Escalation: emergency → auto escalate ──
+    escalation_id: Optional[str] = None
+    if should_escalate_from_triage(triage_result.level.value):
+        escalation_record = create_escalation(
+            session_id=session_id,
+            reason=EscalationReason.EMERGENCY_SYMPTOM,
+            severity=determine_escalation_priority(
+                EscalationReason.EMERGENCY_SYMPTOM,
+                triage_level=triage_result.level.value,
+            ),
+            patient_id=resolved_patient_id,
+            hospital_id=resolved_hospital_id,
+            question=payload.question,
+            detected_signals=triage_result.emergency_symptoms,
+            triage_level=triage_result.level.value,
+        )
+        escalation_id = escalation_record.escalation_id
+        record_escalation_metric(EscalationReason.EMERGENCY_SYMPTOM.value, escalation_record.severity.value)
+        # Transition FSM to HUMAN_ESCALATION
+        if SessionStateMachine.can_escalate(fsm.current_state):
+            fsm.escalate(reason="emergency_symptoms")
+        _save_fsm(session_id, fsm, input_short_term_memory)
+    
+    # ── Trace: wrap agent query with distributed tracing ──
+    with trace_agent_phase(
+        "agent_query",
+        session_id=session_id,
+        patient_id=resolved_patient_id,
+        intent=(input_short_term_memory.session_state.intent if input_short_term_memory else ""),
+        chat_mode=chat_mode,
+    ):
+        data = run_agent_tool_query(
+            question=payload.question,
+            auth_token=auth_token,
+            patient_id=resolved_patient_id,
+            hospital_id=resolved_hospital_id,
+            chat_mode=chat_mode,
+            conversation_context=conversation_context,
+            allergy_drugs=allergy_drugs,
+            allergy_history_unknown=allergy_history_unknown,
+            risk_signals=current_risk_signals,
+        )
     updated_short_term_memory = _roll_short_term_memory(
         input_short_term_memory,
         user_message=payload.question,
@@ -1506,6 +1586,9 @@ def mcp_agent_query(payload: MCPAgentQueryRequest, db: Session = Depends(get_db)
     data["hospital_id"] = resolved_hospital_id
     data["short_term_memory"] = updated_short_term_memory
     data["short_term_memory_count"] = _count_short_term_messages_from_memory(updated_short_term_memory) or _count_short_term_messages(conversation_context)
+    data["triage_level"] = current_risk_signals.triage_level
+    data["escalation_id"] = escalation_id
+    data["session_state"] = fsm.current_state
     data["memory_debug"] = _build_memory_debug_payload(
         chat_mode=chat_mode,
         question=payload.question,
@@ -1840,3 +1923,70 @@ def ragas_judge(payload: RAGASJudgeRequest):
         context_precision=preci,
         overall_score=overall,
     )
+
+
+# ── Escalation API 端点 ──
+
+from pydantic import BaseModel as _EscBaseModel
+
+class EscalationAckRequest(_EscBaseModel):
+    escalation_id: str
+    notes: str = ""
+
+
+class EscalationResolveRequest(_EscBaseModel):
+    escalation_id: str
+    notes: str = ""
+
+
+@router.get(
+    "/escalations",
+    summary="List pending escalations",
+    description="列出所有待处理的人工升级请求。",
+)
+def list_escalations():
+    from app.mcp.escalation import list_pending_escalations, get_escalation_stats
+    return {
+        "pending": [r.to_dict() for r in list_pending_escalations()],
+        "stats": get_escalation_stats(),
+    }
+
+
+@router.get(
+    "/escalations/{session_id}",
+    summary="Get session escalations",
+    description="获取指定会话的所有升级记录。",
+)
+def get_session_escalations(session_id: str):
+    from app.mcp.escalation import get_session_escalations as _get_ses_esc
+    records = _get_ses_esc(session_id)
+    return {
+        "session_id": session_id,
+        "escalations": [r.to_dict() for r in records],
+    }
+
+
+@router.post(
+    "/escalations/acknowledge",
+    summary="Acknowledge escalation",
+    description="确认收到升级请求。",
+)
+def acknowledge_escalation(payload: EscalationAckRequest):
+    from app.mcp.escalation import acknowledge_escalation as _ack
+    record = _ack(payload.escalation_id, notes=payload.notes)
+    if not record:
+        raise HTTPException(status_code=404, detail="升级记录不存在或已处理")
+    return {"status": "ok", "escalation": record.to_dict()}
+
+
+@router.post(
+    "/escalations/resolve",
+    summary="Resolve escalation",
+    description="标记升级请求为已处理。",
+)
+def resolve_escalation(payload: EscalationResolveRequest):
+    from app.mcp.escalation import resolve_escalation as _resolve
+    record = _resolve(payload.escalation_id, notes=payload.notes)
+    if not record:
+        raise HTTPException(status_code=404, detail="升级记录不存在或已处理")
+    return {"status": "ok", "escalation": record.to_dict()}

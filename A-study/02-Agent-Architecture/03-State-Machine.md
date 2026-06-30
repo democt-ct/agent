@@ -1,3 +1,5 @@
+1
+
 # 03 - State Machine — 状态机
 
 > 学习目标：理解状态机在企业Agent中的核心地位，掌握状态建模和转换规则设计
@@ -163,10 +165,10 @@ class AgentStateMachine:
                 f"Cannot transition from {self.current_state.value} "
                 f"to {to_state.value}"
             )
-      
+    
         old_state = self.current_state
         self.current_state = to_state
-      
+    
         # 记录变更
         entry = {
             "timestamp": datetime.now().isoformat(),
@@ -176,10 +178,10 @@ class AgentStateMachine:
             "metadata":  metadata or {}
         }
         self.history.append(entry)
-      
+    
         # 进入特定状态的钩子
         self._on_enter(to_state)
-      
+    
         return True
   
     def _on_enter(self, state: AgentState):
@@ -189,11 +191,11 @@ class AgentStateMachine:
                 # 设置等待超时
                 self.context["wait_started_at"] = datetime.now()
                 self.context["wait_timeout"] = 300  # 5分钟
-          
+        
             case AgentState.FAILED:
                 # 记录失败信息供调试
                 self.context["failed_at_state"] = self.history[-2]["from"]
-          
+        
             case AgentState.DONE:
                 # 触发结果持久化
                 self.context["completed_at"] = datetime.now()
@@ -257,18 +259,18 @@ class StateMachineWithTimeout(AgentStateMachine):
     async def wait_with_timeout(self, timeout_seconds: int = 300):
         """等待用户输入，超时自动转为失败"""
         wait_start = datetime.now()
-      
+    
         while self.current_state == AgentState.WAITING:
             elapsed = (datetime.now() - wait_start).total_seconds()
-          
+        
             if elapsed > timeout_seconds:
                 self.transition(AgentState.FAILED, "timeout",
                     {"reason": f"等待用户输入超时（{timeout_seconds}s）"})
                 return {"status": "timeout", 
                         "message": "等待超时，任务已取消"}
-          
+        
             await asyncio.sleep(5)  # 每5秒检查一次
-      
+    
         return {"status": "ok"}
 
 # ⚠️ 生产环境建议：用 Redis key-expiry 事件代替轮询
@@ -285,10 +287,10 @@ async def handle_waiting_state(sm):
         reason = sm.get_wait_reason()
         # 通知用户
         await send_message(f"⏳ {reason}")
-      
+    
         # 等待，带超时
         result = await sm.wait_with_timeout(timeout_seconds=300)
-      
+    
         if result["status"] == "timeout":
             await send_message("⏰ 等待超时。随时可以重新开始。")
 ```

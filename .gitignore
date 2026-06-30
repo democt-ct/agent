@@ -73,3 +73,6 @@ nul
 *.zip
 *.7z
 *.tar.gz
+
+# 独立仓库（非 submodule）
+jizhang/
